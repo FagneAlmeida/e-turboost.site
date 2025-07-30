@@ -1,0 +1,17 @@
+# Ficheiros de dependências e pastas de build
+/node_modules
+/venv
+/__pycache__/
+
+# Ficheiros de configuração local e sensíveis
+# NUNCA envie estes ficheiros para o GitHub!
+.env
+serviceAccountKey.json
+
+# Ficheiros de log e de IDE
+*.log
+.vscode/
+
+# Ficheiros do sistema operativo
+.DS_Store
+Thumbs.db

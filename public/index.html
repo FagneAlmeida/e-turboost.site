@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turboost - Escapamentos de Alta Performance</title>
+    
+    <link id="favicon" rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Carrega o ficheiro de estilos unificado e compilado -->
+    <link rel="stylesheet" href="/css/output.css">
+</head>
+<body class="antialiased font-roboto bg-primary text-text-light pt-20">
+
+    <!-- =========== HEADER =========== -->
+    <header id="header" class="bg-primary fixed top-0 left-0 right-0 z-50 shadow-lg shadow-black/30">
+        <div class="container mx-auto px-6 h-20 flex justify-between items-center">
+            <a href="/" class="z-10">
+                <img id="header-logo" src="https://placehold.co/200x50/1a1a1a/FFC700?text=Turboost" alt="Logotipo Turboost" class="h-12">
+            </a>
+            <nav class="hidden lg:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center space-x-8">
+                <a href="#hero" class="text-white hover:text-accent transition-colors duration-200 uppercase font-bold">Início</a>
+                <a href="#produtos" class="text-white hover:text-accent transition-colors duration-200 uppercase font-bold">Produtos</a>
+                <a href="#sobre" class="text-white hover:text-accent transition-colors duration-200 uppercase font-bold">Sobre Nós</a>
+                <a href="#contato" class="text-white hover:text-accent transition-colors duration-200 uppercase font-bold">Contato</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <!-- ÁREA DO UTILIZADOR -->
+                <div id="user-area" class="flex items-center gap-2">
+                    <button id="login-btn" class="text-white hover:text-accent transition-colors flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        <span class="hidden md:block">Entrar</span>
+                    </button>
+                </div>
+                <div id="user-info" class="hidden items-center gap-2 text-white">
+                    <span id="user-greeting" class="hidden md:block"></span>
+                    <button id="main-logout-btn" class="text-white hover:text-accent transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    </button>
+                </div>
+
+                <button id="cart-button" class="relative text-white hover:text-accent transition-colors">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-detail text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
+                </button>
+                <div class="lg:hidden">
+                    <button id="mobile-menu-button" class="text-white focus:outline-none">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden lg:hidden bg-primary absolute top-full left-0 w-full">
+            <nav class="flex flex-col items-center space-y-6 py-8">
+                <a href="#hero" class="text-white text-lg uppercase font-bold">Início</a>
+                <a href="#produtos" class="text-white text-lg uppercase font-bold">Produtos</a>
+                <a href="#sobre" class="text-white text-lg uppercase font-bold">Sobre Nós</a>
+                <a href="#contato" class="text-white text-lg uppercase font-bold">Contato</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- O resto do seu conteúdo HTML aqui... -->
+        <section id="hero" class="h-screen flex items-center justify-center">
+            <div class="container mx-auto px-6 text-center">
+                <h1 class="font-anton text-5xl md:text-7xl lg:text-8xl text-white uppercase leading-tight drop-shadow-lg">O RONCO QUE DEFINE A ESTRADA. <br> A <span class="text-accent">POTÊNCIA</span> QUE LIBERTA.</h1>
+            </div>
+        </section>
+        <section id="produtos" class="py-20 bg-background-light">
+             <div class="container mx-auto px-6">
+                <h2 class="font-anton text-4xl md:text-5xl text-center uppercase text-text-dark">Encontre o Escapamento <span class="text-accent">Perfeito</span></h2>
+                <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
+                    <!-- Cards de produtos são carregados aqui pelo main.js -->
+                </div>
+            </div>
+        </section>
+        <!-- Mais seções... -->
+    </main>
+
+    <footer id="contato" class="bg-black pt-20 pb-8">
+        <!-- Conteúdo do footer... -->
+    </footer>
+
+    <!-- =========== PAINÉIS E MODAIS =========== -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden"></div>
+    <aside id="cart-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-primary shadow-lg transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+        <header class="p-4 flex justify-between items-center border-b border-gray-700">
+            <h3 class="font-anton text-2xl text-accent">O seu Carrinho</h3>
+            <button id="close-cart-btn" class="text-white hover:text-accent transition-colors text-4xl leading-none">&times;</button>
+        </header>
+        <div id="cart-items" class="flex-grow overflow-y-auto p-4"></div>
+        <footer class="p-4 border-t border-gray-700">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-lg uppercase font-bold">Total</span>
+                <span id="cart-total" class="text-2xl font-bold text-accent">R$ 0,00</span>
+            </div>
+            <button id="checkout-btn" class="w-full bg-accent hover:bg-accent-hover text-primary font-bold py-3 px-4 rounded-md transition-colors">Finalizar Compra</button>
+        </footer>
+    </aside>
+
+    <div id="auth-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4">
+        <div id="auth-modal" class="bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-700 w-full max-w-sm relative">
+            <button id="close-auth-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <div id="customer-login-view">
+                <h2 class="font-anton text-3xl text-center text-white mb-6">ENTRAR NA SUA CONTA</h2>
+                <form id="customer-login-form" class="space-y-4">
+                    <input type="email" id="login-email" name="login-email" placeholder="O seu E-mail" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md" required>
+                    <input type="password" id="login-password" name="login-password" placeholder="A sua Senha" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md" required>
+                    <p id="login-form-error" class="text-red-500 text-sm text-center h-4"></p>
+                    <button type="submit" class="w-full bg-accent hover:bg-accent-hover text-primary font-bold py-3 px-4 rounded-md">Entrar</button>
+                </form>
+                <p class="text-center text-gray-400 mt-4">
+                    Não tem uma conta? <button id="show-register-view-btn" class="font-bold text-accent hover:underline">Registe-se</button>
+                </p>
+            </div>
+            <div id="customer-register-view" class="hidden">
+                <h2 class="font-anton text-3xl text-center text-white mb-6">CRIAR NOVA CONTA</h2>
+                <form id="customer-register-form" class="space-y-4">
+                    <input type="text" id="register-name" name="register-name" placeholder="O seu Nome Completo" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md" required>
+                    <input type="email" id="register-email" name="register-email" placeholder="O seu E-mail" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md" required>
+                    <input type="password" id="register-password" name="register-password" placeholder="Crie uma Senha" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-md" required>
+                    <p id="register-form-error" class="text-red-500 text-sm text-center h-4"></p>
+                    <button type="submit" class="w-full bg-accent hover:bg-accent-hover text-primary font-bold py-3 px-4 rounded-md">Criar Conta</button>
+                </form>
+                <p class="text-center text-gray-400 mt-4">
+                    Já tem uma conta? <button id="show-login-view-btn" class="font-bold text-accent hover:underline">Faça Login</button>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- --- CORREÇÃO: Scripts do Firebase removidos daqui --- -->
+    <!-- Apenas o script principal do módulo é necessário -->
+    <script src="/js/main.js" type="module"></script>
+</body>
+</html>

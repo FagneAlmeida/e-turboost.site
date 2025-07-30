@@ -1,0 +1,261 @@
+/* public/css/style.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =================================================================
+   STYLESHEET PERSONALIZADO E UNIFICADO - TURBOOST
+   =================================================================
+   Este ficheiro contém todos os estilos personalizados para o site e painel de administração.
+   ================================================================= */
+
+/* --- Variáveis de Cor Globais --- */
+:root {
+    --color-primary: #1a1a1a;
+    --color-secondary: #2c2c2c;
+    --color-accent: #FFC700;
+    --color-detail: #E53935;
+    --color-text-light: #FFFFFF;
+    --color-bg-light: #F5F5F5;
+    --color-text-dark: #1a1a1a;
+    --gray-light: #9CA3AF;
+    --gray-medium: #4B5563;
+    --gray-dark: #1F2937;
+    --gray-darker: #111827;
+}
+
+/* =================================================================
+   ESTILOS GLOBAIS E DO SITE PÚBLICO
+   ================================================================= */
+
+/* --- Estilos Base e Tipografia --- */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: var(--color-primary);
+    color: var(--color-text-light);
+    padding-top: 80px; /* Espaço para o header fixo do site principal */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* O painel de admin tem uma estrutura diferente, então removemos o padding superior dele */
+body.admin-body {
+    padding-top: 0;
+}
+
+.font-anton {
+    font-family: 'Anton', sans-serif;
+    letter-spacing: 1.5px;
+}
+
+/* --- Componentes Reutilizáveis (Botões, Inputs, etc.) --- */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 10px 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    font-size: 0.875rem;
+    border: 2px solid transparent;
+    transform: translateY(0);
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+}
+
+.btn-accent {
+    background-color: var(--color-accent);
+    color: var(--color-primary);
+    border-color: var(--color-accent);
+}
+
+.btn-accent:hover:not(:disabled) {
+    box-shadow: 0 10px 20px rgba(255, 199, 0, 0.2);
+}
+
+.btn-accent:disabled {
+    background-color: #555;
+    border-color: #555;
+    color: #888;
+    cursor: not-allowed;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.btn-outline:hover {
+    background-color: var(--color-accent);
+    color: var(--color-primary);
+}
+
+.btn-danger {
+    color: var(--color-text-light);
+    background-color: var(--color-detail);
+    border-color: var(--color-detail);
+}
+
+.btn-danger:hover {
+    background-color: #B91C1C; /* Vermelho mais escuro */
+    border-color: #B91C1C;
+}
+
+.input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    color: var(--color-text-light);
+    background-color: var(--gray-darker);
+    border: 1px solid var(--gray-medium);
+    border-radius: 0.375rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px rgba(255, 199, 0, 0.4);
+}
+
+/* --- Estilos Específicos do Site Público --- */
+
+.hero-bg {
+    background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1591743683933-2c3e402c0c96?q=80&w=1974&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}
+
+.divider {
+    height: 4px;
+    width: 100px;
+    background: linear-gradient(to right, var(--color-accent), var(--color-detail));
+    margin: 0 auto;
+}
+
+.product-card {
+    background-color: #2a2a2a;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+}
+
+.cart-panel {
+    position: fixed; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100%;
+    background-color: #1f1f1f; z-index: 100; display: flex; flex-direction: column;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.cart-panel.open { right: 0; }
+
+.cart-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.6); z-index: 99; opacity: 0;
+    visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s;
+}
+.cart-overlay.open { opacity: 1; visibility: visible; }
+
+.details-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.8); z-index: 101; opacity: 0;
+    visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s;
+}
+.details-modal-overlay.open { opacity: 1; visibility: visible; }
+
+.details-modal {
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: 90%; max-width: 900px; max-height: 90vh;
+    background-color: var(--color-primary); z-index: 102;
+    border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+    overflow-y: auto;
+}
+.details-modal.open { opacity: 1; visibility: visible; transform: translate(-50%, -50%) scale(1); }
+
+
+/* =================================================================
+   ESTILOS ESPECÍFICOS DO PAINEL DE ADMINISTRAÇÃO
+   ================================================================= */
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin: 0.25rem 0;
+    color: var(--gray-light);
+    border-radius: 0.5rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-link:hover {
+    background-color: var(--gray-dark);
+    color: white;
+}
+
+.sidebar-link.active {
+    background-color: var(--color-accent);
+    color: var(--color-text-dark);
+    font-weight: 600;
+}
+
+.sidebar-link.active svg {
+    stroke: var(--color-text-dark);
+}
+
+/* Animações de Modais (para o painel e site) */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background-color: rgba(0, 0, 0, 0.7);
+    transition: opacity 0.3s ease-in-out;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    position: fixed;
+    z-index: 50;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%); /* Começa um pouco acima */
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    opacity: 0;
+    max-height: 90vh;
+    width: 95vw;
+    max-width: 900px; /* Limita a largura máxima em ecrãs grandes */
+}
+
+.modal-overlay.open .modal-content {
+    transform: translate(-50%, -50%); /* Centraliza quando aberto */
+    opacity: 1;
+}
