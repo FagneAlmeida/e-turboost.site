@@ -15,3 +15,6 @@ serviceAccountKey.json
 # Ficheiros do sistema operativo
 .DS_Store
 Thumbs.db
+
+# Pasta para ignorar
+/public/ignorar/
