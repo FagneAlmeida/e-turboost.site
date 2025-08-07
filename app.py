@@ -21,8 +21,8 @@ load_dotenv()
 # Configura o logging para um formato mais detalhado
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Inicializa a app Flask
-app = Flask(__name__, static_folder='public')
+# Inicializa a app Flask com o caminho estático corrigido
+app = Flask(__name__, static_folder='public', static_url_path='')
 
 # --- Rota para servir o index.html e outros ficheiros estáticos ---
 @app.route('/')
