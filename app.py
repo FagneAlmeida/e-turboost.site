@@ -106,7 +106,12 @@ def delete_file_from_storage(file_url):
         # Extrai o caminho do ficheiro da URL
         parsed_url = urlparse(file_url)
         # O caminho do blob está depois de '/o/' e precisa de ser descodificado
-        blob_path = unquote(parsed_url.path.split('/o/', 1)[1])
+        path_segments = parsed_url.path.split('/o/')
+        if len(path_segments) < 2:
+            logging.warning(f"URL de ficheiro inválida para exclusão: {file_url}")
+            return False
+            
+        blob_path = unquote(path_segments[1])
         
         blob = bucket.blob(blob_path)
         if blob.exists():
@@ -123,8 +128,6 @@ def delete_file_from_storage(file_url):
 # --- API para Configuração do Firebase no Cliente ---
 @app.route('/api/firebase-config')
 def get_firebase_config():
-    # Esta rota é um exemplo, mas para produção, considere métodos mais seguros
-    # se a API for publicamente acessível.
     config = {
         "apiKey": os.getenv("FIREBASE_API_KEY"),
         "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
@@ -142,7 +145,6 @@ def get_firebase_config():
 def check_session():
     return jsonify({'logged_in': 'admin_logged_in' in session})
 
-# ... (outras rotas de admin como check_admin, register, login, logout permanecem iguais) ...
 @app.route('/login', methods=['POST'])
 @db_required
 def login():
@@ -220,11 +222,8 @@ def update_product(product_id):
         for i in range(1, 4):
             image_key = f'imagemURL{i}'
             if image_key in request.files and request.files[image_key].filename:
-                # Se uma imagem antiga existir, apaga-a
                 if old_product_data.get(image_key):
                     delete_file_from_storage(old_product_data[image_key])
-                
-                # Faz o upload da nova imagem
                 url = upload_file_to_storage(request.files[image_key], 'products')
                 if url: data[image_key] = url
         
@@ -243,17 +242,53 @@ def delete_product(product_id):
         product_data = product_ref.get().to_dict()
 
         if product_data:
-            # Apaga todas as imagens associadas do Storage
             for i in range(1, 4):
                 if f'imagemURL{i}' in product_data:
                     delete_file_from_storage(product_data[f'imagemURL{i}'])
         
-        # Apaga o documento do Firestore
         product_ref.delete()
         return jsonify({'message': 'Produto eliminado com sucesso.'}), 200
     except Exception as e:
         logging.error(f"ERRO AO ELIMINAR PRODUTO {product_id}: {e}")
         return jsonify({'error': f'Erro ao eliminar produto: {e}'}), 500
+
+# --- ROTAS DE API DE CONFIGURAÇÕES ---
+@app.route('/api/settings', methods=['GET'])
+@db_required
+def get_settings():
+    try:
+        settings_doc = db.collection('settings').document('storeConfig').get()
+        return jsonify(settings_doc.to_dict() if settings_doc.exists else {}), 200
+    except Exception as e:
+        logging.error(f"ERRO AO BUSCAR CONFIGURAÇÕES: {e}")
+        return jsonify({'error': f'Erro ao buscar configurações: {e}'}), 500
+
+@app.route('/api/settings', methods=['POST'])
+@login_required
+@db_required
+def save_settings():
+    try:
+        settings_ref = db.collection('settings').document('storeConfig')
+        old_settings = settings_ref.get().to_dict() or {}
+        data = request.form.to_dict()
+
+        if 'logoFile' in request.files and request.files['logoFile'].filename:
+            if old_settings.get('logoUrl'):
+                delete_file_from_storage(old_settings['logoUrl'])
+            url = upload_file_to_storage(request.files['logoFile'], 'branding')
+            if url: data['logoUrl'] = url
+
+        if 'faviconFile' in request.files and request.files['faviconFile'].filename:
+            if old_settings.get('faviconUrl'):
+                delete_file_from_storage(old_settings['faviconUrl'])
+            url = upload_file_to_storage(request.files['faviconFile'], 'branding')
+            if url: data['faviconUrl'] = url
+        
+        settings_ref.set(data, merge=True)
+        return jsonify({'message': 'Configurações guardadas com sucesso.'}), 200
+    except Exception as e:
+        logging.error(f"ERRO AO GUARDAR CONFIGURAÇÕES: {e}")
+        return jsonify({'error': f'Erro ao guardar configurações: {e}'}), 500
 
 # --- ROTAS DE API DE FRETE ---
 @app.route('/api/shipping', methods=['POST'])
@@ -283,7 +318,6 @@ def calculate_shipping():
     except (ValueError, TypeError):
         return jsonify({"error": "Dados inválidos nos itens do carrinho."}), 400
 
-    # --- INTEGRAÇÃO REAL COM API DE FRETE (EX: CORREIOS) ---
     try:
         cep_origem = os.getenv('CEP_ORIGEM', '01001000')
         
@@ -301,13 +335,13 @@ def calculate_shipping():
             'sCdMaoPropria': 'n',
             'nVlValorDeclarado': str(valor_total_produtos),
             'sCdAvisoRecebimento': 'n',
-            'nCdServico': '04510,04014', # 04510 = PAC, 04014 = SEDEX
+            'nCdServico': '04510,04014',
             'StrRetorno': 'xml',
             'nIndicaCalculo': '3'
         }
         
         response = requests.get("http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx", params=params)
-        response.raise_for_status() # Lança um erro para respostas HTTP ruins (4xx ou 5xx)
+        response.raise_for_status()
 
         root = ElementTree.fromstring(response.content)
         options = []
@@ -326,8 +360,7 @@ def calculate_shipping():
                     "PrazoEntrega": prazo
                 })
         
-        if not options:
-             # Se a API retornou, mas com erro em todos os serviços
+        if not options and msg_erro:
              logging.error(f"Erro da API dos Correios: {msg_erro}")
              return jsonify({"error": f"Não foi possível calcular o frete: {msg_erro}"}), 500
 
@@ -342,5 +375,4 @@ def calculate_shipping():
 
 # --- Bloco de Execução ---
 if __name__ == '__main__':
-    # Use Gunicorn ou outro servidor WSGI para produção
     app.run(debug=True, host='127.0.0.1', port=5000)
