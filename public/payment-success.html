@@ -14,7 +14,6 @@
         <h1 class="font-anton text-3xl sm:text-4xl text-text-dark mb-2">Pagamento Aprovado!</h1>
         <p class="text-text-muted mb-6">Obrigado pela sua compra! O seu pedido foi recebido e está a ser processado. Você receberá um e-mail com os detalhes em breve.</p>
         
-        <!-- --- CORREÇÃO: Exibição dinâmica do ID do Pedido --- -->
         <div class="bg-background-light p-3 rounded-md mb-8">
             <p class="text-sm text-text-muted">ID do seu Pedido:</p>
             <p id="order-id" class="font-mono text-text-dark font-bold text-lg">Carregando...</p>
@@ -25,16 +24,12 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Pega os parâmetros da URL
             const urlParams = new URLSearchParams(window.location.search);
             const orderId = urlParams.get('order_id');
             const orderIdElement = document.getElementById('order-id');
 
             if (orderId && orderIdElement) {
                 orderIdElement.textContent = orderId;
-                // Futuramente, aqui você poderia fazer uma chamada para a sua API
-                // para buscar mais detalhes do pedido e atualizar o status no Firestore.
-                // Ex: fetch(`/api/order-status?order_id=${orderId}`)
             } else if (orderIdElement) {
                 orderIdElement.textContent = 'Não encontrado';
             }

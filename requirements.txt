@@ -1,14 +1,7 @@
-# --- Framework e Servidores WSGI ---
 Flask==3.0.0
 gunicorn==22.0.0
-waitress==2.1.2
-
-# --- Integrações e Serviços ---
 firebase-admin==6.5.0
-mercadopago==2.3.0      # --- CORREÇÃO: Versão atualizada para uma que existe no repositório.
-pycep-correios==5.2.0
-
-# --- Utilitários ---
-python-dotenv==1.0.1
+mercadopago==2.3.0
 requests==2.31.0
+python-dotenv==1.0.1
 Werkzeug==3.0.1
