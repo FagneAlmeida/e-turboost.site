@@ -13,8 +13,8 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebas
 // Variável para garantir que a inicialização ocorra apenas uma vez.
 let firebasePromiseInstance = null;
 
-// Token de autorização (hardcoded para teste local - substitua por variável de ambiente em produção)
-const API_AUTH_TOKEN = "Tbst-AP1-tK_2o25_sEcUr3_gHjK9lM0nOpQrStUvWxYz"; // Do .env
+// Token de autorização será substituído durante o deploy pela variável de ambiente.
+const API_AUTH_TOKEN = "__API_AUTH_TOKEN_PLACEHOLDER__";
 
 async function fetchFirebaseConfig() {
     try {
