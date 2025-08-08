@@ -2,38 +2,23 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagamento Aprovado - Turboost</title>
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/output.css">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-background-light font-roboto flex items-center justify-center h-screen p-4">
-    <div class="text-center p-8 sm:p-10 bg-white rounded-lg shadow-xl max-w-md mx-auto">
-        <svg class="w-20 h-20 sm:w-24 sm:h-24 text-success mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <h1 class="font-anton text-3xl sm:text-4xl text-text-dark mb-2">Pagamento Aprovado!</h1>
-        <p class="text-text-muted mb-6">Obrigado pela sua compra! O seu pedido foi recebido e está a ser processado. Você receberá um e-mail com os detalhes em breve.</p>
-        
-        <div class="bg-background-light p-3 rounded-md mb-8">
-            <p class="text-sm text-text-muted">ID do seu Pedido:</p>
-            <p id="order-id" class="font-mono text-text-dark font-bold text-lg">Carregando...</p>
+<body id="page-success" class="bg-primary text-text-light font-roboto flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="bg-secondary p-8 rounded-lg shadow-xl text-center max-w-lg w-full">
+        <div class="mx-auto mb-4 w-16 h-16 flex items-center justify-center bg-green-500 rounded-full">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         </div>
-        
-        <a href="/" class="inline-block bg-accent hover:bg-accent-hover text-primary font-bold py-3 px-8 rounded-md transition-colors duration-300">Voltar à Loja</a>
+        <h1 class="font-anton text-3xl text-white mb-2">Pagamento Aprovado!</h1>
+        <p class="text-gray-400 mb-6">O seu pedido foi recebido com sucesso. Estamos a preparar tudo para o envio.</p>
+        <div class="text-left bg-primary p-4 rounded-md text-sm">
+            <p class="mb-2"><strong>ID do Pagamento:</strong> <span id="payment_id">...</span></p>
+            <p><strong>Status:</strong> <span id="status" class="font-bold text-green-400">...</span></p>
+        </div>
+        <a href="/index.html" class="mt-8 btn btn-accent w-full">Voltar à Loja</a>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const orderId = urlParams.get('order_id');
-            const orderIdElement = document.getElementById('order-id');
-
-            if (orderId && orderIdElement) {
-                orderIdElement.textContent = orderId;
-            } else if (orderIdElement) {
-                orderIdElement.textContent = 'Não encontrado';
-            }
-        });
-    </script>
+    <script type="module" src="/js/payment-feedback.js"></script>
 </body>
 </html>
