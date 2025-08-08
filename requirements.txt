@@ -1,8 +1,11 @@
-Flask==3.0.0
-gunicorn==22.0.0
-firebase-admin==6.5.0
-mercadopago==2.3.0
-requests==2.31.0
-python-dotenv==1.0.1
-Werkzeug==3.0.1
-pycep-correios==4.0.4
+Requisitos do Python para o projeto Turboost
+O uso de '~=' garante que o projeto receba atualizações de segurança e correções de bugs
+sem introduzir alterações que quebrem a compatibilidade.
+Flask~=3.0.0
+gunicorn~=22.0.0
+firebase-admin~=6.5.0
+mercadopago~=2.3.0
+requests~=2.31.0
+python-dotenv~=1.0.1
+Werkzeug~=3.0.1
+pycep-correios~=4.0.4
