@@ -100,10 +100,37 @@ def token_required(f):
     return decorated_function
 
 # --- ROTAS DE API (Frete, Pagamento, etc.) ---
-# A sua rota de frete original, já estava ótima.
+
+# ROTA ADICIONADA: Fornece a configuração do Firebase para o frontend
+@app.route('/api/firebase-config', methods=['GET'])
+def get_firebase_config():
+    """
+    Esta rota expõe as configurações do Firebase necessárias para o cliente (frontend).
+    ATENÇÃO: NUNCA exponha credenciais de serviço ou chaves secretas aqui.
+    Estas são as configurações públicas para inicializar o SDK do cliente.
+    """
+    try:
+        firebase_config = {
+            "apiKey": os.getenv("FIREBASE_API_KEY"),
+            "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+            "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+            "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+            "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+            "appId": os.getenv("FIREBASE_APP_ID")
+        }
+        # Verifica se todas as chaves essenciais foram carregadas
+        if not all(firebase_config.values()):
+            logging.error("ERRO: Variáveis de ambiente do Firebase para o frontend não estão completamente definidas.")
+            return jsonify({"error": "A configuração do servidor está incompleta."}), 500
+            
+        return jsonify(firebase_config)
+    except Exception as e:
+        logging.error(f"ERRO AO OBTER CONFIG DO FIREBASE: {e}")
+        return jsonify({"error": "Não foi possível obter a configuração do servidor."}), 500
+
+
 @app.route('/api/shipping', methods=['POST'])
 def calculate_shipping():
-    # ... (código da rota de frete original - sem alterações)
     data = request.get_json()
     cep_destino = data.get('cep', '').replace('-', '').strip()
     cart_items = data.get('items', [])
