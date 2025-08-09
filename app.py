@@ -155,10 +155,23 @@ def search_products():
         logging.error(f"ERRO AO BUSCAR PRODUTOS: {e}")
         return jsonify({"error": "Não foi possível realizar a busca."}), 500
 
-# ... (outras rotas públicas como shipping, create_payment, pages, etc.)
+@app.route('/api/pages/<page_name>', methods=['GET'])
+@db_required
+def get_page_content(page_name):
+    """Busca o conteúdo de uma página específica (ex: 'privacy', 'terms')."""
+    try:
+        page_ref = db.collection('pages').document(page_name).get()
+        if page_ref.exists:
+            return jsonify(page_ref.to_dict()), 200
+        return jsonify({"content": f"<p>Conteúdo para '{page_name}' ainda não definido.</p>"}), 404
+    except Exception as e:
+        logging.error(f"Erro ao buscar conteúdo da página {page_name}: {e}")
+        return jsonify({"error": "Não foi possível carregar o conteúdo."}), 500
+
+# Adicione aqui as outras rotas públicas (shipping, create_payment, etc.)
 
 # --- ROTAS DE ADMINISTRAÇÃO ---
-# ... (todas as rotas de admin, CRUD de produtos, pedidos, settings, pages, etc.)
+# Adicione aqui todas as rotas de admin (login, logout, CRUD de produtos, pedidos, settings, etc.)
 
 # --- Bloco de Execução ---
 if __name__ == '__main__':

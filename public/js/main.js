@@ -17,15 +17,50 @@ function main(auth, db) {
         const searchResultsSection = document.getElementById('search-results-section');
         const searchResultsGrid = document.getElementById('search-results-grid');
         const mainContent = document.getElementById('main-content');
-        // ... (outros elementos do DOM)
+        const infoModalOverlay = document.getElementById('info-modal-overlay');
+        const infoModal = document.getElementById('info-modal');
+        const infoModalTitle = document.getElementById('info-modal-title');
+        const infoModalContent = document.getElementById('info-modal-content');
+        const closeInfoModalBtn = document.getElementById('close-info-modal-btn');
+        const contactInfoFooter = document.getElementById('contact-info-footer');
+        // Adicione outros elementos do DOM aqui (carrinho, login, etc.)
 
         // --- ESTADO DA APLICAÇÃO ---
         let allProducts = [];
         let cart = JSON.parse(localStorage.getItem('turboostCart')) || [];
 
-        // ... (funções de UI, carrinho, autenticação) ...
+        // --- FUNÇÕES DE UI ---
+        const openModal = (overlay, modal) => {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+        };
+        const closeModal = (overlay, modal) => {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+        };
 
-        // --- LÓGICA DE BUSCA/FILTRO (ATUALIZADA) ---
+        const openInfoModal = async (pageType) => {
+            const titles = {
+                'about': 'Sobre Nós',
+                'privacy': 'Política de Privacidade',
+                'terms': 'Termos de Serviço',
+                'returns': 'Trocas e Devoluções',
+                'faq': 'Perguntas Frequentes'
+            };
+            infoModalTitle.textContent = titles[pageType] || 'Informação';
+            infoModalContent.innerHTML = '<div class="loader"></div>'; // Simula um loader
+            openModal(infoModalOverlay, infoModal);
+            try {
+                const response = await fetch(`/api/pages/${pageType}`);
+                const data = await response.json();
+                infoModalContent.innerHTML = data.content || `<p class="text-red-400">${data.error || 'Não foi possível carregar.'}</p>`;
+            } catch (error) {
+                console.error(`Erro ao buscar página ${pageType}:`, error);
+                infoModalContent.innerHTML = `<p class="text-red-400">Ocorreu um erro de conexão.</p>`;
+            }
+        };
+        
+        // --- LÓGICA DE BUSCA/FILTRO ---
         const populateSearchFilters = () => {
             if (allProducts.length === 0) return;
             const marcas = [...new Set(allProducts.map(p => p.marca).filter(Boolean))].sort();
@@ -48,14 +83,14 @@ function main(auth, db) {
             }
             productsToRender.forEach(product => {
                 const card = document.createElement('div');
-                card.className = 'bg-secondary border border-gray-700 rounded-lg overflow-hidden flex flex-col transition-transform duration-300 hover:scale-105';
+                card.className = 'bg-gray-800 border border-gray-700 rounded-lg overflow-hidden flex flex-col';
                 card.innerHTML = `
-                    <img src="${product.imagemURL1 || 'https://placehold.co/600x400/1a1a1a/FFC700?text=Turboost'}" alt="Imagem de ${product.nomeProduto}" class="w-full h-56 object-cover">
+                    <img src="${product.imagemURL1 || 'https://placehold.co/600x400/1a1a1a/FFC700?text=IMG'}" alt="${product.nomeProduto}" class="w-full h-56 object-cover">
                     <div class="p-5 flex flex-col flex-grow">
-                        <h3 class="font-anton text-2xl text-white truncate" title="${product.nomeProduto}">${product.nomeProduto}</h3>
+                        <h3 class="font-anton text-2xl text-white truncate">${product.nomeProduto}</h3>
                         <p class="text-gray-400 text-sm mb-4">${product.marca || ''} / ${product.modelo || ''}</p>
-                        <p class="text-3xl font-bold text-accent mt-auto mb-5">R$ ${product.preco ? product.preco.toFixed(2).replace('.', ',') : '0,00'}</p>
-                        <button data-id="${product.id}" class="border border-accent text-accent hover:bg-accent hover:text-secondary w-full add-to-cart-btn mt-auto py-2 px-4 rounded-md font-semibold transition-colors duration-300">Adicionar ao Carrinho</button>
+                        <p class="text-3xl font-bold text-yellow-400 mt-auto mb-5">R$ ${product.preco ? product.preco.toFixed(2).replace('.', ',') : '0,00'}</p>
+                        <button data-id="${product.id}" class="add-to-cart-btn w-full bg-yellow-400 text-gray-900 font-bold py-2 px-4 rounded hover:bg-yellow-500 transition-colors">Adicionar ao Carrinho</button>
                     </div>
                 `;
                 searchResultsGrid.appendChild(card);
@@ -66,11 +101,10 @@ function main(auth, db) {
             const marca = brandSelect.value;
             const modelo = modelSelect.value;
             const ano = yearSelect.value;
-
             const queryParams = new URLSearchParams({ marca, modelo, ano });
             const url = `/api/products/search?${queryParams.toString()}`;
 
-            searchResultsGrid.innerHTML = '<div class="loader"></div>';
+            searchResultsGrid.innerHTML = '<div class="loader"></div>'; // Simula um loader
             mainContent.classList.add('hidden');
             searchResultsSection.classList.remove('hidden');
             searchResultsSection.scrollIntoView({ behavior: 'smooth' });
@@ -89,29 +123,53 @@ function main(auth, db) {
         // --- CARREGAMENTO INICIAL DE DADOS ---
         const loadInitialData = async () => {
             try {
-                const productsResponse = await fetch('/api/products');
-                if (!productsResponse.ok) throw new Error('Falha ao buscar produtos');
-                allProducts = await productsResponse.json();
+                const [productsResponse, settingsResponse] = await Promise.all([
+                    fetch('/api/products'),
+                    fetch('/api/settings')
+                ]);
+
+                if (productsResponse.ok) {
+                    allProducts = await productsResponse.json();
+                    const bestSellers = allProducts.filter(p => p.isFeatured).slice(0, 9);
+                    // Supondo que você tenha uma função renderProducts para os destaques
+                    // renderProducts(bestSellers); 
+                    populateSearchFilters();
+                }
+
+                if (settingsResponse.ok) {
+                    const settings = await settingsResponse.json();
+                    contactInfoFooter.innerHTML = ''; // Limpa antes de adicionar
+                    if (settings.contact_email) {
+                        contactInfoFooter.innerHTML += `<li><a href="mailto:${settings.contact_email}" class="hover:text-yellow-400">${settings.contact_email}</a></li>`;
+                    }
+                     if (settings.contact_phone) {
+                        contactInfoFooter.innerHTML += `<li><a href="tel:${settings.contact_phone}" class="hover:text-yellow-400">${settings.contact_phone}</a></li>`;
+                    }
+                }
                 
-                const bestSellers = allProducts.filter(p => p.isFeatured).slice(0, 9);
-                renderProducts(bestSellers);
-                populateSearchFilters();
-                
-                // ... (código de settings)
             } catch (error) {
-                // ... (código de erro)
+                console.error("Erro ao carregar dados iniciais:", error);
             }
         };
 
         // --- EVENT LISTENERS ---
         searchButton.addEventListener('click', performSearch);
         
-        searchResultsGrid.addEventListener('click', e => {
-            const btn = e.target.closest('.add-to-cart-btn');
-            if (btn) addToCart(btn.dataset.id);
+        document.body.addEventListener('click', (e) => {
+            const trigger = e.target.closest('.info-modal-trigger');
+            if (trigger) {
+                e.preventDefault();
+                openInfoModal(trigger.dataset.modalType);
+            }
         });
-        
-        // ... (restante dos listeners)
+
+        closeInfoModalBtn.addEventListener('click', () => closeModal(infoModalOverlay, infoModal));
+        infoModalOverlay.addEventListener('click', (e) => {
+            if (e.target === infoModalOverlay) {
+                closeModal(infoModalOverlay, infoModal);
+            }
+        });
+        // Adicione outros listeners aqui (carrinho, login, etc.)
         
         loadInitialData();
     });
