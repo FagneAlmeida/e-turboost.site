@@ -14,7 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
     const contentSections = document.querySelectorAll('.content-section');
     const totalProductsEl = document.getElementById('total-products');
+    const totalOrdersEl = document.getElementById('total-orders');
     const productListEl = document.getElementById('product-list');
+    const orderListEl = document.getElementById('order-list');
     const settingsForm = document.getElementById('settings-form');
     const addProductBtn = document.getElementById('add-product-btn');
     const productModalOverlay = document.getElementById('product-modal-overlay');
@@ -23,17 +25,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modal-title');
     const adminLogo = document.getElementById('admin-logo');
 
-    // --- CORREÇÃO: Elementos para o modal de notificação ---
+    // Elementos para o modal de notificação
     const notificationModal = document.getElementById('notification-modal');
     const notificationTitle = document.getElementById('notification-title');
     const notificationMessage = document.getElementById('notification-message');
     const notificationConfirmBtn = document.getElementById('notification-confirm-btn');
     const notificationCancelBtn = document.getElementById('notification-cancel-btn');
 
+    // Elementos para o modal de detalhes do pedido
+    const orderDetailsModalOverlay = document.getElementById('order-details-modal-overlay');
+    const orderModalTitle = document.getElementById('order-modal-title');
+    const orderModalContent = document.getElementById('order-modal-content');
+    const closeOrderModalBtn = document.getElementById('close-order-modal-btn');
+
     let allProducts = [];
+    let allOrders = [];
     let confirmCallback = null;
 
-    // --- CORREÇÃO: Funções de Modal para substituir alert() e confirm() ---
+    // --- Funções de Modal ---
     const showNotification = (title, message, showConfirm = false) => {
         notificationTitle.textContent = title;
         notificationMessage.textContent = message;
@@ -80,17 +89,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- AUTENTICAÇÃO ---
     const checkAdminStatus = async () => {
         try {
-            // Primeiro, verifica se já existe uma sessão ativa
-            const sessionData = await api.get('/api/check-session');
-            if (sessionData.logged_in) {
+            const sessionData = await api.get('/api/admin/session');
+            if (sessionData.isLoggedIn) {
                 authModalOverlay.classList.remove('open');
                 mainContent.classList.remove('hidden');
                 loadInitialData();
                 return;
             }
 
-            // Se não houver sessão, verifica se um admin existe para mostrar login ou registo
-            const adminData = await api.get('/api/check-admin');
+            const adminData = await api.get('/api/admin/check');
             loginView.classList.toggle('hidden', !adminData.adminExists);
             registerView.classList.toggle('hidden', adminData.adminExists);
             authModalOverlay.classList.add('open');
@@ -103,34 +110,34 @@ document.addEventListener('DOMContentLoaded', () => {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginError.textContent = '';
-        const data = await api.post('/login', {
+        const data = await api.post('/api/admin/login', {
             username: loginForm.username.value,
             password: loginForm.password.value
         });
-        if (data.message === 'Login bem-sucedido.') {
-            window.location.reload(); // Recarrega para obter o estado de login correto
+        if (data.success) {
+            window.location.reload();
         } else {
-            loginError.textContent = data.message || 'Erro desconhecido.';
+            loginError.textContent = data.error || 'Erro desconhecido.';
         }
     });
 
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         registerError.textContent = '';
-        const data = await api.post('/api/register', {
+        const data = await api.post('/api/admin/register', {
             username: registerForm['reg-username'].value,
             password: registerForm['reg-password'].value
         });
-        if (data.message === 'Administrador registado com sucesso.') {
+        if (data.success) {
             showNotification('Sucesso', 'Administrador registado! Faça login para continuar.');
             checkAdminStatus();
         } else {
-            registerError.textContent = data.message || 'Erro desconhecido.';
+            registerError.textContent = data.error || 'Erro desconhecido.';
         }
     });
 
     logoutBtn.addEventListener('click', async () => {
-        await api.post('/logout', {});
+        await api.post('/api/admin/logout', {});
         window.location.reload();
     });
 
@@ -149,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const loadInitialData = () => {
         loadProducts();
+        loadOrders();
         loadSettings();
     };
 
@@ -158,6 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
             totalProductsEl.textContent = allProducts.length;
             renderProducts();
         } catch (error) { console.error("Erro ao carregar produtos:", error); }
+    };
+
+    const loadOrders = async () => {
+        try {
+            allOrders = await api.get('/api/admin/orders');
+            totalOrdersEl.textContent = allOrders.length;
+            renderOrders();
+        } catch (error) { console.error("Erro ao carregar pedidos:", error); }
     };
 
     const loadSettings = async () => {
@@ -190,11 +206,33 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     };
 
+    const renderOrders = () => {
+        if (allOrders.length === 0) {
+            orderListEl.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-400">Nenhum pedido encontrado.</td></tr>';
+            return;
+        }
+        orderListEl.innerHTML = allOrders.map(order => {
+            const orderDate = new Date(order.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const statusClass = order.status === 'approved' ? 'text-green-400' : 'text-yellow-400';
+            
+            return `
+                <tr class="border-b border-gray-700 hover:bg-gray-900">
+                    <td class="p-4">${orderDate}</td>
+                    <td class="p-4">${order.payer?.email || 'N/A'}</td>
+                    <td class="p-4 font-semibold">R$ ${order.total ? order.total.toFixed(2).replace('.', ',') : '0,00'}</td>
+                    <td class="p-4 font-bold ${statusClass}">${order.status || 'Pendente'}</td>
+                    <td class="p-4">
+                        <button data-id="${order.id}" class="view-order-btn text-accent hover:underline">Ver Detalhes</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    };
+
     // --- MANIPULAÇÃO DE FORMULÁRIOS E MODAIS ---
     settingsForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(settingsForm);
-        // --- CORREÇÃO: Validação de ficheiros ---
         const logoFile = formData.get('logoFile');
         if (logoFile && logoFile.size === 0) formData.delete('logoFile');
         
@@ -211,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(productForm);
         const productId = formData.get('productId');
 
-        // --- CORREÇÃO: Validação de campos obrigatórios ---
         if (!formData.get('nomeProduto') || !formData.get('preco')) {
             showNotification('Erro de Validação', 'Nome do Produto e Preço são campos obrigatórios.');
             return;
@@ -250,6 +287,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const closeProductModal = () => productModalOverlay.classList.remove('open');
 
+    const openOrderDetailsModal = (order) => {
+        orderModalTitle.textContent = `Detalhes do Pedido #${order.id.substring(0, 8)}`;
+        
+        const itemsHtml = order.items.map(item => `
+            <div class="flex justify-between items-center py-2 border-b border-gray-700">
+                <span>${item.quantity}x ${item.name}</span>
+                <span>R$ ${item.price.toFixed(2).replace('.', ',')}</span>
+            </div>
+        `).join('');
+
+        const payer = order.payer || {};
+        
+        orderModalContent.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-bold text-lg mb-2 text-accent">Itens Comprados</h3>
+                    <div class="space-y-2">${itemsHtml}</div>
+                    <div class="flex justify-between font-bold text-lg mt-2 pt-2 border-t border-gray-500">
+                        <span>Total:</span>
+                        <span>R$ ${order.total.toFixed(2).replace('.', ',')}</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-2 text-accent">Dados do Cliente</h3>
+                    <p><strong>Nome:</strong> ${payer.name || 'N/A'}</p>
+                    <p><strong>Email:</strong> ${payer.email || 'N/A'}</p>
+                    <p><strong>Telefone:</strong> ${payer.phone?.area_code || ''} ${payer.phone?.number || ''}</p>
+                    <p><strong>Documento:</strong> ${payer.identification?.type || ''} ${payer.identification?.number || ''}</p>
+                </div>
+            </div>
+        `;
+        orderDetailsModalOverlay.classList.add('open');
+    };
+
+    const closeOrderDetailsModal = () => {
+        orderDetailsModalOverlay.classList.remove('open');
+    };
+
     addProductBtn.addEventListener('click', () => openProductModal());
     cancelProductBtn.addEventListener('click', closeProductModal);
     
@@ -269,11 +344,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Listeners do modal de notificação
+    orderListEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.view-order-btn');
+        if (btn) {
+            const orderId = btn.dataset.id;
+            const order = allOrders.find(o => o.id === orderId);
+            if (order) {
+                openOrderDetailsModal(order);
+            }
+        }
+    });
+
+    // Listeners dos modais
     notificationCancelBtn.addEventListener('click', hideNotification);
     notificationConfirmBtn.addEventListener('click', () => {
         if (typeof confirmCallback === 'function') {
             confirmCallback();
+        }
+    });
+    closeOrderModalBtn.addEventListener('click', closeOrderDetailsModal);
+    orderDetailsModalOverlay.addEventListener('click', (e) => {
+        if (e.target === orderDetailsModalOverlay) {
+            closeOrderDetailsModal();
         }
     });
 

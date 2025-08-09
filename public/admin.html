@@ -69,6 +69,10 @@
                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                         Produtos
                     </a>
+                    <a href="#" class="flex items-center px-4 py-3 mt-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white sidebar-link" data-section="orders-section">
+                        <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        Pedidos
+                    </a>
                     <a href="#" class="flex items-center px-4 py-3 mt-2 text-gray-300 rounded-md hover:bg-gray-700 hover:text-white sidebar-link" data-section="settings-section">
                         <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0 3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Configurações
@@ -92,6 +96,10 @@
                             <h3 class="text-lg font-semibold text-gray-400">Total de Produtos</h3>
                             <p id="total-products" class="mt-2 text-4xl font-bold text-accent">0</p>
                         </div>
+                        <div class="p-6 bg-gray-800 rounded-lg">
+                            <h3 class="text-lg font-semibold text-gray-400">Total de Pedidos</h3>
+                            <p id="total-orders" class="mt-2 text-4xl font-bold text-accent">0</p>
+                        </div>
                     </div>
                 </section>
 
@@ -102,6 +110,28 @@
                         <button id="add-product-btn" class="w-full sm:w-auto bg-accent hover:bg-accent-hover text-primary font-bold py-2 px-4 rounded-md transition-colors">Adicionar Produto</button>
                     </div>
                     <div id="product-list" class="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                    </div>
+                </section>
+
+                <!-- Orders Section -->
+                <section id="orders-section" class="hidden content-section">
+                    <h2 class="text-4xl font-bold mb-8 font-anton">Pedidos Recebidos</h2>
+                    <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-gray-900">
+                                    <tr>
+                                        <th class="p-4 font-semibold">Data</th>
+                                        <th class="p-4 font-semibold">Cliente</th>
+                                        <th class="p-4 font-semibold">Total</th>
+                                        <th class="p-4 font-semibold">Status Pag.</th>
+                                        <th class="p-4 font-semibold">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="order-list">
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -162,7 +192,7 @@
         </div>
     </div>
     
-    <!-- --- CORREÇÃO: Modal de Notificação --- -->
+    <!-- Notification Modal -->
     <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4 transition-opacity duration-300">
         <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-white">
             <h3 id="notification-title" class="text-xl font-bold mb-4 text-accent"></h3>
@@ -174,6 +204,19 @@
         </div>
     </div>
 
-    <script src="/js/admin.js"></script>
+    <!-- Order Details Modal -->
+    <div id="order-details-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 z-50 hidden items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                <h2 id="order-modal-title" class="text-2xl font-bold text-white font-anton">Detalhes do Pedido</h2>
+                <button id="close-order-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <div id="order-modal-content" class="p-6 overflow-y-auto">
+                <!-- Conteúdo do pedido será inserido aqui -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/js/admin.js"></script>
 </body>
 </html>
