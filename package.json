@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Frontend build process for Turboost e-commerce site.",
   "scripts": {
-    "build": "mkdir -p ./public/css && tailwindcss -i ./public/css/style.css -o ./public/css/output.css --minify"
+    "prebuild": "mkdir -p ./public/css",
+    "build": "tailwindcss -i ./public/css/style.css -o ./public/css/output.css --minify"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.1"
