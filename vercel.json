@@ -8,7 +8,10 @@
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "public" }
+      "config": {
+        "installCommand": "npm install",
+        "distDir": "public"
+      }
     }
   ],
   "routes": [
@@ -18,7 +21,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/public/$1"
+      "dest": "public/$1"
     }
   ]
 }
