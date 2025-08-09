@@ -94,7 +94,27 @@ def upload_to_firebase(file_to_upload, destination_path):
         return None
 
 # --- ROTAS DE API PÚBLICAS ---
-# (As suas rotas públicas como get_products, shipping, create_payment, etc. permanecem aqui)
+
+@app.route('/api/firebase-config', methods=['GET'])
+def get_firebase_config():
+    """ Rota adicionada para fornecer a configuração do Firebase ao frontend. """
+    try:
+        firebase_config = {
+            "apiKey": os.getenv("FIREBASE_API_KEY"),
+            "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+            "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+            "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+            "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+            "appId": os.getenv("FIREBASE_APP_ID")
+        }
+        if not all(firebase_config.values()):
+            logging.error("ERRO: Variáveis de ambiente do Firebase para o frontend não estão completamente definidas.")
+            return jsonify({"error": "A configuração do servidor está incompleta."}), 500
+        return jsonify(firebase_config)
+    except Exception as e:
+        logging.error(f"ERRO AO OBTER CONFIG DO FIREBASE: {e}")
+        return jsonify({"error": "Não foi possível obter a configuração do servidor."}), 500
+
 @app.route('/api/products', methods=['GET'])
 @db_required
 def get_products():
@@ -110,10 +130,30 @@ def get_products():
         logging.error(f"ERRO AO BUSCAR PRODUTOS: {e}")
         return jsonify({"error": "Não foi possível carregar os produtos."}), 500
 
-# ... (outras rotas públicas)
+# ... (outras rotas públicas como shipping, create_payment, etc.)
 
 # --- ROTAS DE ADMINISTRAÇÃO ---
-# (As suas rotas de login/logout de admin permanecem aqui)
+@app.route('/api/admin/check', methods=['GET'])
+@db_required
+def check_admin_exists():
+    admin_ref = db.collection('admin').limit(1).get()
+    return jsonify({'adminExists': len(admin_ref) > 0})
+
+@app.route('/api/admin/register', methods=['POST'])
+@db_required
+def register_admin():
+    admin_ref = db.collection('admin').limit(1).get()
+    if len(admin_ref) > 0:
+        return jsonify({"error": "Um administrador já está registado."}), 403
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({"error": "Utilizador e senha são obrigatórios."}), 400
+    hashed_password = generate_password_hash(password)
+    db.collection('admin').add({'username': username, 'password': hashed_password})
+    return jsonify({"success": "Administrador registado com sucesso."}), 201
+
 @app.route('/api/admin/login', methods=['POST'])
 @db_required
 def login_admin():
@@ -134,7 +174,17 @@ def login_admin():
     
     return jsonify({"error": "Credenciais inválidas."}), 401
 
-# ... (outras rotas de admin)
+@app.route('/api/admin/logout', methods=['POST'])
+def logout_admin():
+    session.clear()
+    return jsonify({"success": "Logout bem-sucedido."})
+
+@app.route('/api/admin/session', methods=['GET'])
+def check_admin_session():
+    if 'admin_logged_in' in session:
+        return jsonify({"isLoggedIn": True, "username": session.get('username')})
+    return jsonify({"isLoggedIn": False})
+
 
 # --- ROTAS CRUD DE PRODUTOS (IMPLEMENTAÇÃO COMPLETA) ---
 
@@ -144,13 +194,10 @@ def login_admin():
 def add_product():
     try:
         data = request.form.to_dict()
-        
-        # Converte os campos para os tipos corretos
         data['preco'] = float(data.get('preco', 0))
         data['isFeatured'] = data.get('isFeatured') == 'on'
         data['ano'] = [int(y.strip()) for y in data.get('ano', '').split(',') if y.strip().isdigit()]
         
-        # Upload da imagem
         if 'imagem' in request.files:
             image_file = request.files['imagem']
             filename = f"products/{uuid.uuid4()}_{image_file.filename}"
@@ -158,7 +205,6 @@ def add_product():
             if image_url:
                 data['imagemURL1'] = image_url
 
-        # Salva no Firestore
         db.collection('products').add(data)
         return jsonify({"message": "Produto adicionado com sucesso!"}), 201
     except Exception as e:
@@ -173,12 +219,10 @@ def update_product(product_id):
         data = request.form.to_dict()
         product_ref = db.collection('products').document(product_id)
 
-        # Converte os campos para os tipos corretos
         if 'preco' in data: data['preco'] = float(data['preco'])
         data['isFeatured'] = data.get('isFeatured') == 'on'
         if 'ano' in data: data['ano'] = [int(y.strip()) for y in data.get('ano', '').split(',') if y.strip().isdigit()]
 
-        # Upload de nova imagem, se fornecida
         if 'imagem' in request.files:
             image_file = request.files['imagem']
             if image_file.filename != '':
@@ -203,20 +247,19 @@ def delete_product(product_id):
         if not product_doc.exists:
             return jsonify({"error": "Produto não encontrado."}), 404
         
-        # Apaga a imagem do Storage, se existir
         product_data = product_doc.to_dict()
         if 'imagemURL1' in product_data:
             try:
-                # Extrai o nome do ficheiro do URL para apagar do bucket
                 parsed_url = urlparse(product_data['imagemURL1'])
-                blob_name = unquote(parsed_url.path.split('/')[-1])
-                blob = bucket.blob(f"products/{blob_name}")
-                if blob.exists():
-                    blob.delete()
+                path_parts = parsed_url.path.split('/')
+                if len(path_parts) >= 2:
+                    blob_name = f"products/{unquote(path_parts[-1])}"
+                    blob = bucket.blob(blob_name)
+                    if blob.exists():
+                        blob.delete()
             except Exception as e:
                 logging.warning(f"Não foi possível apagar a imagem do produto {product_id}: {e}")
 
-        # Apaga o documento do Firestore
         product_ref.delete()
         return jsonify({"message": "Produto eliminado com sucesso!"}), 200
     except Exception as e:
@@ -232,7 +275,7 @@ def get_settings():
         settings_ref = db.collection('settings').document('storeConfig').get()
         if settings_ref.exists:
             return jsonify(settings_ref.to_dict()), 200
-        return jsonify({}), 200 # Retorna objeto vazio se não houver configurações
+        return jsonify({}), 200
     except Exception as e:
         logging.error(f"Erro ao buscar configurações: {e}")
         return jsonify({"error": "Não foi possível carregar as configurações."}), 500
@@ -245,7 +288,6 @@ def update_settings():
         data = request.form.to_dict()
         settings_ref = db.collection('settings').document('storeConfig')
 
-        # Upload de imagens (logo e favicon)
         if 'logoFile' in request.files:
             logo_file = request.files['logoFile']
             if logo_file.filename != '':
@@ -258,7 +300,7 @@ def update_settings():
                 favicon_url = upload_to_firebase(favicon_file, f"site/favicon_{uuid.uuid4()}")
                 if favicon_url: data['faviconUrl'] = favicon_url
 
-        settings_ref.set(data, merge=True) # merge=True para não apagar campos existentes
+        settings_ref.set(data, merge=True)
         return jsonify({"message": "Configurações salvas com sucesso!"}), 200
     except Exception as e:
         logging.error(f"Erro ao salvar configurações: {e}")
