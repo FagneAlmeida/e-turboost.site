@@ -1,8 +1,13 @@
-Flask~=3.0.0
-gunicorn~=22.0.0
-firebase-admin~=6.5.0
-mercadopago~=2.3.0
-requests~=2.31.0
-python-dotenv~=1.0.1
-Werkzeug~=3.0.1
-pycep-correios~=4.0.4
+# Flask e extensões
+Flask==3.0.3
+Flask-Cors==4.0.1
+gunicorn==22.0.0
+
+# Bibliotecas de API e Serviços
+firebase-admin==6.5.0
+mercadopago==2.1.6
+requests==2.32.3
+
+# Utilitários
+python-dotenv==1.0.1
+Werkzeug==3.0.3
