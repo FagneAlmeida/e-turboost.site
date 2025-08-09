@@ -5,7 +5,7 @@ gunicorn==22.0.0
 
 # Bibliotecas de API e Serviços
 firebase-admin==6.5.0
-mercadopago==2.1.6
+mercadopago==2.3.0
 requests==2.32.3
 
 # Utilitários
