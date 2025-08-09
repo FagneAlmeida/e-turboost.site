@@ -1,11 +1,24 @@
 {
-  "name": "turboost-site",
-  "version": "1.0.0",
-  "description": "Frontend build process for Turboost e-commerce site.",
-  "scripts": {
-    "build": "tailwindcss -i ./public/css/style.css -o ./public/css/output.css --minify"
-  },
-  "devDependencies": {
-    "tailwindcss": "^3.4.1"
-  }
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "public" }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "app.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ]
 }

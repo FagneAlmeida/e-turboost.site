@@ -1,20 +1,11 @@
 {
-  "name": "turboost-app",
+  "name": "turboost-site",
   "version": "1.0.0",
-  "description": "Website e-commerce para Turboost",
-  "main": "app.py",
+  "description": "Frontend build process for Turboost e-commerce site.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tailwindcss -i ./public/css/style.css -o ./public/css/output.css --minify",
-    "dev": "tailwindcss -i ./public/css/style.css -o ./public/css/output.css --watch"
-  },
-  "author": "Seu Nome",
-  "license": "ISC",
-  "dependencies": {
-    "firebase": "^10.14.1"
+    "build": "tailwindcss -i ./public/css/style.css -o ./public/css/output.css --minify"
   },
   "devDependencies": {
-    "@tailwindcss/forms": "^0.5.7",
     "tailwindcss": "^3.4.1"
   }
 }
