@@ -185,6 +185,28 @@ def check_admin_session():
         return jsonify({"isLoggedIn": True, "username": session.get('username')})
     return jsonify({"isLoggedIn": False})
 
+# --- ROTA DE GESTÃO DE PEDIDOS ---
+@app.route('/api/admin/orders', methods=['GET'])
+@admin_required
+@db_required
+def get_orders():
+    """ Rota para buscar todos os pedidos para o painel de administração. """
+    try:
+        # Ordena os pedidos por data de criação, dos mais recentes para os mais antigos
+        orders_ref = db.collection('orders').order_by('createdAt', direction=firestore.Query.DESCENDING).stream()
+        orders_list = []
+        for order in orders_ref:
+            order_data = order.to_dict()
+            order_data['id'] = order.id
+            # Converte o timestamp para uma string legível (ISO 8601)
+            if 'createdAt' in order_data and hasattr(order_data['createdAt'], 'isoformat'):
+                order_data['createdAt'] = order_data['createdAt'].isoformat()
+            orders_list.append(order_data)
+        return jsonify(orders_list), 200
+    except Exception as e:
+        logging.error(f"ERRO AO BUSCAR PEDIDOS: {e}")
+        return jsonify({"error": "Não foi possível carregar os pedidos."}), 500
+
 
 # --- ROTAS CRUD DE PRODUTOS (IMPLEMENTAÇÃO COMPLETA) ---
 
