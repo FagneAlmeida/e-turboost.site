@@ -67,15 +67,69 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# --- ROTAS ---
+# --- ROTAS DA API ---
+
+@app.route('/api/products/search', methods=['GET'])
+@db_required
+def search_products():
+    """
+    Endpoint de busca de produtos com filtros dinâmicos.
+    Aceita 'marca', 'modelo' e 'ano' como query parameters.
+    """
+    try:
+        # Extrai os parâmetros de query da requisição
+        marca = request.args.get('marca')
+        modelo = request.args.get('modelo')
+        ano = request.args.get('ano')
+
+        # Começa com a consulta base na coleção de produtos
+        query = db.collection('products')
+
+        # Adiciona filtros dinamicamente se os parâmetros forem fornecidos
+        if marca:
+            query = query.where('marca', '==', marca)
+        if modelo:
+            query = query.where('modelo', '==', modelo)
+        if ano:
+            # Firestore armazena números, então convertemos o parâmetro
+            try:
+                query = query.where('ano', '==', int(ano))
+            except (ValueError, TypeError):
+                # Se o ano não for um número válido, ignora o filtro ou retorna erro
+                return jsonify({"error": "O parâmetro 'ano' deve ser um número válido."}), 400
+
+        # Executa a consulta e formata os resultados
+        docs = query.stream()
+        products_list = []
+        for doc in docs:
+            product_data = doc.to_dict()
+            product_data['id'] = doc.id
+            products_list.append(product_data)
+
+        return jsonify(products_list), 200
+
+    except Exception as e:
+        logging.error(f"Erro na busca de produtos: {e}")
+        return jsonify({"error": "Ocorreu um erro interno ao buscar os produtos."}), 500
+
+
+# ... (outras rotas da API, como /api/products e /api/settings, viriam aqui)
+
+
+# --- ROTAS PARA SERVIR O FRONTEND ---
 @app.route('/')
 @app.route('/<path:path>')
 def serve_static(path='index.html'):
-    # ... (código existente para servir ficheiros estáticos)
-    pass
+    # Uma implementação mais robusta para servir os ficheiros estáticos e o index.html
+    if path != "index.html" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    else:
+        # Se o caminho não corresponder a um ficheiro estático, sirva o index.html
+        # Isso é crucial para que o roteamento do lado do cliente (se houver) funcione
+        return send_from_directory(app.static_folder, 'index.html')
 
-# ... (TODAS as outras rotas, públicas e de admin, vêm aqui)
 
 # --- Bloco de Execução ---
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Use o host 0.0.0.0 para ser acessível na rede local, importante para testes
+    app.run(host='0.0.0.0', port=5000, debug=True)
