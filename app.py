@@ -12,6 +12,8 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 from firebase_admin import credentials, initialize_app, firestore, storage, auth
+# Importação adicionada para a nova sintaxe de query
+from google.cloud.firestore_v1.base_query import FieldFilter
 from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 from xml.etree import ElementTree
@@ -74,31 +76,27 @@ def admin_required(f):
 def search_products():
     """
     Endpoint de busca de produtos com filtros dinâmicos.
-    Aceita 'marca', 'modelo' e 'ano' como query parameters.
+    Utiliza a sintaxe recomendada FieldFilter para as consultas.
     """
     try:
-        # Extrai os parâmetros de query da requisição
         marca = request.args.get('marca')
         modelo = request.args.get('modelo')
         ano = request.args.get('ano')
 
-        # Começa com a consulta base na coleção de produtos
         query = db.collection('products')
 
-        # Adiciona filtros dinamicamente se os parâmetros forem fornecidos
+        # Refatorado: Usa o argumento nomeado 'filter' com FieldFilter
         if marca:
-            query = query.where('marca', '==', marca)
+            query = query.where(filter=FieldFilter('marca', '==', marca))
         if modelo:
-            query = query.where('modelo', '==', modelo)
+            query = query.where(filter=FieldFilter('modelo', '==', modelo))
         if ano:
-            # Firestore armazena números, então convertemos o parâmetro
             try:
-                query = query.where('ano', '==', int(ano))
+                # Refatorado: Usa o argumento nomeado 'filter' com FieldFilter
+                query = query.where(filter=FieldFilter('ano', '==', int(ano)))
             except (ValueError, TypeError):
-                # Se o ano não for um número válido, ignora o filtro ou retorna erro
                 return jsonify({"error": "O parâmetro 'ano' deve ser um número válido."}), 400
 
-        # Executa a consulta e formata os resultados
         docs = query.stream()
         products_list = []
         for doc in docs:
@@ -120,16 +118,12 @@ def search_products():
 @app.route('/')
 @app.route('/<path:path>')
 def serve_static(path='index.html'):
-    # Uma implementação mais robusta para servir os ficheiros estáticos e o index.html
     if path != "index.html" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     else:
-        # Se o caminho não corresponder a um ficheiro estático, sirva o index.html
-        # Isso é crucial para que o roteamento do lado do cliente (se houver) funcione
         return send_from_directory(app.static_folder, 'index.html')
 
 
 # --- Bloco de Execução ---
 if __name__ == '__main__':
-    # Use o host 0.0.0.0 para ser acessível na rede local, importante para testes
     app.run(host='0.0.0.0', port=5000, debug=True)
