@@ -23,11 +23,9 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 1. INICIALIZAÇÃO DA APLICAÇÃO FLASK (CORREÇÃO APLICADA)
-# A app é criada aqui, antes de qualquer rota ser definida.
 app = Flask(__name__, static_folder='public', static_url_path='')
 
 # 2. CONFIGURAÇÃO DA APP
-# Agora podemos configurar a app porque a variável 'app' já existe.
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 SECRET_KEY = os.getenv('SESSION_SECRET')
 if not SECRET_KEY:
@@ -46,9 +44,7 @@ try:
         creds_dict = json.loads(firebase_creds_json)
         cred = credentials.Certificate(creds_dict)
     else:
-        # Fallback para desenvolvimento local
         cred = credentials.Certificate('serviceAccountKey.json')
-
     initialize_app(cred, {'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET')})
     db = firestore.client()
     bucket = storage.bucket()
@@ -69,33 +65,89 @@ else:
 def db_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not db:
-            return jsonify({"error": "O serviço de base de dados não está disponível."}), 503
+        if not db: return jsonify({"error": "O serviço de base de dados não está disponível."}), 503
         return f(*args, **kwargs)
     return decorated_function
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'admin_logged_in' not in session:
-            return jsonify({"error": "Acesso de administrador necessário."}), 403
+        if 'admin_logged_in' not in session: return jsonify({"error": "Acesso de administrador necessário."}), 403
         return f(*args, **kwargs)
     return decorated_function
 
 # --- FUNÇÃO AUXILIAR DE UPLOAD ---
 def upload_to_firebase(file_to_upload, destination_path):
+    if not file_to_upload: return None
+    try:
+        blob = bucket.blob(destination_path)
+        blob.upload_from_file(file_to_upload, content_type=file_to_upload.content_type)
+        blob.make_public()
+        return blob.public_url
+    except Exception as e:
+        logging.error(f"Erro no upload para o Firebase: {e}")
+        return None
+
+# --- ROTAS DE SERVIÇO DE FICHEIROS ESTÁTICOS ---
+@app.route('/')
+@app.route('/<path:path>')
+def serve_static(path='index.html'):
+    if not os.path.exists(os.path.join(app.static_folder, path)) or os.path.isdir(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, 'index.html')
+    return send_from_directory(app.static_folder, path)
+
+# --- ROTAS DE API PÚBLICAS ---
+@app.route('/api/firebase-config', methods=['GET'])
+def get_firebase_config():
     # ... (código existente)
     pass
 
-# 3. DEFINIÇÃO DAS ROTAS
-# Agora que a app está criada e configurada, podemos definir as rotas.
+@app.route('/api/products', methods=['GET'])
+@db_required
+def get_products():
+    # ... (código existente)
+    pass
+
+@app.route('/api/products/search', methods=['GET'])
+@db_required
+def search_products():
+    # ... (código existente)
+    pass
+    
+@app.route('/api/pages/<page_name>', methods=['GET'])
+@db_required
+def get_page_content(page_name):
+    # ... (código existente)
+    pass
+
 @app.route('/api/settings', methods=['GET'])
 @db_required
 def get_settings():
-    # ... (código da função)
+    # ... (código existente)
     pass
 
-# ... (todas as outras rotas: /api/products, /api/admin/login, etc.)
+# --- ROTAS DE ADMINISTRAÇÃO ---
+@app.route('/api/admin/check', methods=['GET'])
+@db_required
+def check_admin_exists():
+    # ... (código existente)
+    pass
+
+# ... (todas as outras rotas de admin: register, login, logout, session, CRUD de produtos, pedidos, etc.)
+
+@app.route('/api/settings', methods=['POST'])
+@admin_required
+@db_required
+def update_settings():
+    # ... (código existente)
+    pass
+
+@app.route('/api/admin/pages/<page_name>', methods=['POST'])
+@admin_required
+@db_required
+def update_page_content(page_name):
+    # ... (código existente)
+    pass
 
 # --- Bloco de Execução ---
 if __name__ == '__main__':
