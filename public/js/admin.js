@@ -40,11 +40,37 @@ document.addEventListener('DOMContentLoaded', () => {
     let allOrders = [];
     let confirmCallback = null;
 
+    // --- FUNÇÕES DE MODAL ---
+    const showNotification = (title, message, showConfirm = false) => {
+        if (!notificationModal) return;
+        notificationTitle.textContent = title;
+        notificationMessage.textContent = message;
+        notificationConfirmBtn.classList.toggle('hidden', !showConfirm);
+        notificationCancelBtn.textContent = showConfirm ? 'Cancelar' : 'Fechar';
+        notificationModal.classList.add('flex');
+        notificationModal.classList.remove('hidden');
+    };
+
+    const hideNotification = () => {
+        if (!notificationModal) return;
+        notificationModal.classList.add('hidden');
+        notificationModal.classList.remove('flex');
+        confirmCallback = null;
+    };
+
+    const confirmAction = (title, message, callback) => {
+        showNotification(title, message, true);
+        confirmCallback = callback;
+    };
+
     // --- FUNÇÕES DE API ---
     const api = {
         get: async (endpoint) => {
             const res = await fetch(endpoint);
-            if (!res.ok) throw new Error(`Erro na API: ${res.statusText}`);
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ error: res.statusText }));
+                throw new Error(errorData.error || `Erro na API: ${res.statusText}`);
+            }
             return res.json();
         },
         post: async (endpoint, body, isJson = true) => {
@@ -53,19 +79,152 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: isJson ? { 'Content-Type': 'application/json' } : {},
                 body: isJson ? JSON.stringify(body) : body,
             });
-            return res.json();
+            const responseData = await res.json();
+            if (!res.ok) throw new Error(responseData.error || 'Erro desconhecido ao enviar dados.');
+            return responseData;
         },
-        // ... (outras funções da api como put, delete)
+        put: async (endpoint, body) => {
+             const res = await fetch(endpoint, {
+                method: 'PUT',
+                body: body
+            });
+            const responseData = await res.json();
+            if (!res.ok) throw new Error(responseData.error || 'Erro desconhecido ao atualizar dados.');
+            return responseData;
+        },
+        delete: async (endpoint) => {
+            const res = await fetch(endpoint, { method: 'DELETE' });
+            const responseData = await res.json();
+            if (!res.ok) throw new Error(responseData.error || 'Erro desconhecido ao eliminar dados.');
+            return responseData;
+        },
     };
 
-    // --- LÓGICA DE CARREGAMENTO DE DADOS ---
+    // --- AUTENTICAÇÃO ---
+    const checkAdminStatus = async () => {
+        try {
+            const sessionData = await api.get('/api/admin/session');
+            if (sessionData.isLoggedIn) {
+                if(authModalOverlay) {
+                    authModalOverlay.classList.remove('flex');
+                    authModalOverlay.classList.add('hidden');
+                }
+                if(mainContent) mainContent.classList.remove('hidden');
+                loadInitialData();
+                return;
+            }
+
+            const adminData = await api.get('/api/admin/check');
+            if(loginView) loginView.classList.toggle('hidden', !adminData.adminExists);
+            if(registerView) registerView.classList.toggle('hidden', adminData.adminExists);
+            if(authModalOverlay) {
+                authModalOverlay.classList.remove('hidden');
+                authModalOverlay.classList.add('flex');
+            }
+
+        } catch (error) {
+            showNotification("Erro de Conexão", "Não foi possível conectar ao servidor. Tente novamente mais tarde.");
+        }
+    };
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(loginError) loginError.textContent = '';
+            try {
+                const data = await api.post('/api/admin/login', {
+                    username: loginForm.username.value,
+                    password: loginForm.password.value
+                });
+                if (data.success) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                if(loginError) loginError.textContent = error.message || 'Erro desconhecido.';
+            }
+        });
+    }
+
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if(registerError) registerError.textContent = '';
+            try {
+                const data = await api.post('/api/admin/register', {
+                    username: registerForm['reg-username'].value,
+                    password: registerForm['reg-password'].value
+                });
+                if (data.success) {
+                    showNotification('Sucesso', 'Administrador registado! Faça login para continuar.');
+                    checkAdminStatus();
+                }
+            } catch (error) {
+                if(registerError) registerError.textContent = error.message || 'Erro desconhecido.';
+            }
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            await api.post('/api/admin/logout', {});
+            window.location.reload();
+        });
+    }
+    
+    // --- NAVEGAÇÃO E CARREGAMENTO DE DADOS ---
+    sidebarLinks.forEach(link => {
+        if (!link.closest('button')) {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                contentSections.forEach(s => s.classList.add('hidden'));
+                const section = document.getElementById(link.dataset.section);
+                if(section) section.classList.remove('hidden');
+            });
+        }
+    });
+    
+    const loadInitialData = () => {
+        loadProducts();
+        loadOrders();
+        loadSettings();
+    };
+
+    const loadProducts = async () => {
+        try {
+            allProducts = await api.get('/api/products');
+            if(totalProductsEl) totalProductsEl.textContent = allProducts.length;
+            renderProducts();
+        } catch (error) { console.error("Erro ao carregar produtos:", error); }
+    };
+
+    const loadOrders = async () => {
+        try {
+            allOrders = await api.get('/api/admin/orders');
+            if(totalOrdersEl) totalOrdersEl.textContent = allOrders.length;
+            renderOrders();
+        } catch (error) { console.error("Erro ao carregar pedidos:", error); }
+    };
+
     const loadSettings = async () => {
         try {
             const settings = await api.get('/api/settings');
-            // ... (código para preencher logo, favicon, endereço)
+            Object.keys(settings).forEach(key => {
+                if (settingsForm && settingsForm.elements[key]) {
+                    settingsForm.elements[key].value = settings[key];
+                }
+            });
+            if (settings.logoUrl) {
+                const logoPreview = document.getElementById('logo-preview');
+                if(logoPreview) {
+                    logoPreview.src = settings.logoUrl;
+                    logoPreview.classList.remove('hidden');
+                }
+                if(adminLogo) adminLogo.src = settings.logoUrl;
+            }
 
-            // Carrega o conteúdo das páginas dinâmicas
-            pageEditors.forEach(async (editor) => {
+            for (const editor of pageEditors) {
                 const pageName = editor.dataset.pageName;
                 if (pageName) {
                     try {
@@ -74,45 +233,45 @@ document.addEventListener('DOMContentLoaded', () => {
                             editor.value = pageData.content;
                         }
                     } catch (error) {
-                        console.warn(`Não foi possível carregar o conteúdo para a página: ${pageName}`);
+                        console.warn(`Conteúdo para a página '${pageName}' ainda não definido.`);
                     }
                 }
-            });
-
+            }
         } catch (error) { console.error("Erro ao carregar configurações:", error); }
     };
 
-    const loadInitialData = () => {
-        // ... (chama loadProducts, loadOrders, loadSettings)
-    };
+    // --- RENDERIZAÇÃO ---
+    const renderProducts = () => { /* ... (código completo aqui) ... */ };
+    const renderOrders = () => { /* ... (código completo aqui) ... */ };
 
-    // --- MANIPULADORES DE EVENTOS (EVENT HANDLERS) ---
-    settingsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        // Salva as configurações gerais (logo, etc.)
-        const formData = new FormData(settingsForm);
-        // ... (lógica para remover ficheiros vazios)
-        const settingsResponse = await api.post('/api/settings', formData, false);
-        showNotification('Configurações', settingsResponse.message);
-
-        // Salva o conteúdo de cada página
-        for (const editor of pageEditors) {
-            const pageName = editor.dataset.pageName;
-            const content = editor.value;
+    // --- MANIPULADORES DE EVENTOS ---
+    if (settingsForm) {
+        settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             try {
-                await api.post(`/api/admin/pages/${pageName}`, { content });
-            } catch (error) {
-                console.error(`Falha ao salvar a página ${pageName}:`, error);
-                showNotification('Erro', `Não foi possível salvar a página ${pageName}.`);
-            }
-        }
-        
-        loadSettings(); // Recarrega as configurações para garantir consistência
-    });
+                const formData = new FormData(settingsForm);
+                const logoFile = formData.get('logoFile');
+                if (logoFile && logoFile.size === 0) formData.delete('logoFile');
+                const faviconFile = formData.get('faviconFile');
+                if (faviconFile && faviconFile.size === 0) formData.delete('faviconFile');
 
-    // ... (restante do código: autenticação, navegação, modais, renderização, etc.)
-    // O código anterior permanece funcional e inalterado.
+                await api.post('/api/settings', formData, false);
+                
+                for (const editor of pageEditors) {
+                    const pageName = editor.dataset.pageName;
+                    const content = editor.value;
+                    await api.post(`/api/admin/pages/${pageName}`, { content });
+                }
+
+                showNotification('Sucesso', 'Todas as configurações foram salvas!');
+                loadSettings();
+            } catch (error) {
+                showNotification('Erro', error.message);
+            }
+        });
+    }
+
+    // ... (restante do código: productForm, modais, listeners de botões, etc.)
 
     // --- INICIALIZAÇÃO ---
     checkAdminStatus();

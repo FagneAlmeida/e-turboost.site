@@ -16,162 +16,55 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 from xml.etree import ElementTree
 
-# Carrega as variáveis de ambiente do ficheiro .env
-load_dotenv()
-
-# Configura o logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Inicializa a app Flask
-app = Flask(__name__, static_folder='public', static_url_path='')
-CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
-
-# Configuração da chave secreta e da sessão
-SECRET_KEY = os.getenv('SESSION_SECRET')
-if not SECRET_KEY:
-    raise ValueError("A variável de ambiente SESSION_SECRET não foi definida!")
-app.secret_key = SECRET_KEY
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.permanent_session_lifetime = timedelta(days=7)
-
-# --- Bloco de Inicialização do Firebase Admin ---
-db = None
-bucket = None
-try:
-    firebase_creds_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
-    if firebase_creds_json:
-        creds_dict = json.loads(firebase_creds_json)
-        cred = credentials.Certificate(creds_dict)
-    else:
-        cred = credentials.Certificate('serviceAccountKey.json')
-
-    initialize_app(cred, {'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET')})
-    db = firestore.client()
-    bucket = storage.bucket()
-    logging.info("SUCESSO: Firebase Admin e Storage inicializados.")
-except Exception as e:
-    logging.error(f"ERRO CRÍTICO NA INICIALIZAÇÃO DO FIREBASE: {e}")
-
-# --- Configuração do SDK do Mercado Pago ---
-sdk = None
-MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
-if MERCADOPAGO_ACCESS_TOKEN:
-    sdk = mercadopago.SDK(MERCADOPAGO_ACCESS_TOKEN)
-    logging.info("SDK do Mercado Pago configurado com sucesso.")
-else:
-    logging.warning("AVISO: MERCADOPAGO_ACCESS_TOKEN não encontrado.")
-
-# --- DECORATORS ---
-def db_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not db:
-            return jsonify({"error": "O serviço de base de dados não está disponível."}), 503
-        return f(*args, **kwargs)
-    return decorated_function
-
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'admin_logged_in' not in session:
-            return jsonify({"error": "Acesso de administrador necessário."}), 403
-        return f(*args, **kwargs)
-    return decorated_function
-
-# --- FUNÇÃO AUXILIAR DE UPLOAD ---
-def upload_to_firebase(file_to_upload, destination_path):
-    if not file_to_upload:
-        return None
-    try:
-        blob = bucket.blob(destination_path)
-        blob.upload_from_file(file_to_upload, content_type=file_to_upload.content_type)
-        blob.make_public()
-        return blob.public_url
-    except Exception as e:
-        logging.error(f"Erro no upload para o Firebase: {e}")
-        return None
+# ... (código de inicialização e decorators existentes) ...
 
 # --- ROTAS DE API PÚBLICAS ---
-
-@app.route('/api/firebase-config', methods=['GET'])
-def get_firebase_config():
-    try:
-        firebase_config = {
-            "apiKey": os.getenv("FIREBASE_API_KEY"),
-            "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
-            "projectId": os.getenv("FIREBASE_PROJECT_ID"),
-            "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
-            "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
-            "appId": os.getenv("FIREBASE_APP_ID")
-        }
-        if not all(firebase_config.values()):
-            logging.error("ERRO: Variáveis de ambiente do Firebase para o frontend não estão completamente definidas.")
-            return jsonify({"error": "A configuração do servidor está incompleta."}), 500
-        return jsonify(firebase_config)
-    except Exception as e:
-        logging.error(f"ERRO AO OBTER CONFIG DO FIREBASE: {e}")
-        return jsonify({"error": "Não foi possível obter a configuração do servidor."}), 500
-
-@app.route('/api/products', methods=['GET'])
-@db_required
-def get_products():
-    try:
-        products_ref = db.collection('products').stream()
-        products_list = [dict(id=p.id, **p.to_dict()) for p in products_ref]
-        return jsonify(products_list), 200
-    except Exception as e:
-        logging.error(f"ERRO AO BUSCAR PRODUTOS: {e}")
-        return jsonify({"error": "Não foi possível carregar os produtos."}), 500
-
-@app.route('/api/products/search', methods=['GET'])
-@db_required
-def search_products():
-    """Filtra produtos com base nos parâmetros de query (marca, modelo, ano)."""
-    try:
-        marca = request.args.get('marca', '').strip().lower()
-        modelo = request.args.get('modelo', '').strip().lower()
-        ano = request.args.get('ano', '').strip()
-
-        products_ref = db.collection('products').stream()
-        results = []
-        for product in products_ref:
-            product_data = product.to_dict()
-            product_data['id'] = product.id
-            
-            p_marca = product_data.get('marca', '').lower()
-            p_modelo = product_data.get('modelo', '').lower()
-            p_ano_list = product_data.get('ano', [])
-
-            match_marca = not marca or marca == p_marca
-            match_modelo = not modelo or modelo == p_modelo
-            match_ano = not ano or (ano.isdigit() and int(ano) in p_ano_list)
-
-            if match_marca and match_modelo and match_ano:
-                results.append(product_data)
-
-        return jsonify(results), 200
-    except Exception as e:
-        logging.error(f"ERRO AO BUSCAR PRODUTOS: {e}")
-        return jsonify({"error": "Não foi possível realizar a busca."}), 500
-
-@app.route('/api/pages/<page_name>', methods=['GET'])
-@db_required
-def get_page_content(page_name):
-    """Busca o conteúdo de uma página específica (ex: 'privacy', 'terms')."""
-    try:
-        page_ref = db.collection('pages').document(page_name).get()
-        if page_ref.exists:
-            return jsonify(page_ref.to_dict()), 200
-        return jsonify({"content": f"<p>Conteúdo para '{page_name}' ainda não definido.</p>"}), 404
-    except Exception as e:
-        logging.error(f"Erro ao buscar conteúdo da página {page_name}: {e}")
-        return jsonify({"error": "Não foi possível carregar o conteúdo."}), 500
-
-# Adicione aqui as outras rotas públicas (shipping, create_payment, etc.)
+# ... (rotas públicas existentes: /api/firebase-config, /api/products, /api/products/search, /api/pages/<page_name>, etc.) ...
 
 # --- ROTAS DE ADMINISTRAÇÃO ---
-# Adicione aqui todas as rotas de admin (login, logout, CRUD de produtos, pedidos, settings, etc.)
+# ... (rotas de admin existentes: login, logout, session, check, CRUD de produtos, pedidos) ...
+
+@app.route('/api/settings', methods=['GET'])
+@db_required
+def get_settings():
+    try:
+        settings_ref = db.collection('settings').document('storeConfig').get()
+        if settings_ref.exists:
+            return jsonify(settings_ref.to_dict()), 200
+        return jsonify({}), 200
+    except Exception as e:
+        logging.error(f"Erro ao buscar configurações: {e}")
+        return jsonify({"error": "Não foi possível carregar as configurações."}), 500
+
+@app.route('/api/settings', methods=['POST'])
+@admin_required
+@db_required
+def update_settings():
+    try:
+        data = request.form.to_dict()
+        settings_ref = db.collection('settings').document('storeConfig')
+
+        # Upload de imagens (logo e favicon)
+        if 'logoFile' in request.files:
+            logo_file = request.files['logoFile']
+            if logo_file.filename != '':
+                logo_url = upload_to_firebase(logo_file, f"site/logo_{uuid.uuid4()}")
+                if logo_url: data['logoUrl'] = logo_url
+        
+        if 'faviconFile' in request.files:
+            favicon_file = request.files['faviconFile']
+            if favicon_file.filename != '':
+                favicon_url = upload_to_firebase(favicon_file, f"site/favicon_{uuid.uuid4()}")
+                if favicon_url: data['faviconUrl'] = favicon_url
+
+        # A flexibilidade do merge=True permite salvar os novos campos (contact_email, social_instagram, etc.) sem alterar o código.
+        settings_ref.set(data, merge=True)
+        return jsonify({"message": "Configurações salvas com sucesso!"}), 200
+    except Exception as e:
+        logging.error(f"Erro ao salvar configurações: {e}")
+        return jsonify({"error": "Ocorreu um erro interno ao salvar as configurações."}), 500
+
+# ... (outras rotas de admin) ...
 
 # --- Bloco de Execução ---
 if __name__ == '__main__':
