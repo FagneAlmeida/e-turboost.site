@@ -29,14 +29,8 @@
         </a>
     </div>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            document.getElementById('payment_id').textContent = params.get('payment_id') || 'N/A';
-            document.getElementById('status').textContent = params.get('status') || 'N/A';
-            document.getElementById('external_reference').textContent = params.get('external_reference') || 'N/A';
-        });
-    </script>
+    <!-- Lógica de script movida para um ficheiro externo para consistência e manutenibilidade -->
+    <script type="module" src="/js/payment-feedback.js"></script>
 
 </body>
 </html>
