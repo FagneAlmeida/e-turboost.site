@@ -1,184 +1,123 @@
-import { firebasePromise } from './app-init.js';
+// public/js/checkout.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // --- ELEMENTOS DO DOM ---
-    const checkoutForm = document.getElementById('checkout-form');
-    const cepInput = document.getElementById('cep');
-    const streetInput = document.getElementById('street');
-    const neighborhoodInput = document.getElementById('neighborhood');
-    const cityInput = document.getElementById('city');
-    const stateInput = document.getElementById('state');
-    const numberInput = document.getElementById('number');
-    const shippingOptionsContainer = document.getElementById('shipping-options-container');
-    const shippingMessage = document.getElementById('shipping-message');
-    const shippingLoader = document.getElementById('shipping-loader');
-    const summaryShippingEl = document.getElementById('summary-shipping');
-    const summaryTotalEl = document.getElementById('summary-total');
-    const summarySubtotalEl = document.getElementById('summary-subtotal');
-    const payButton = document.getElementById('pay-button');
-    const walletContainer = document.getElementById('wallet_container');
-    
-    // --- ESTADO DA APLICAÇÃO ---
-    let cart = JSON.parse(localStorage.getItem('turboostCart')) || [];
+const app = initializeApp(window.firebaseConfig);
+const auth = getAuth(app);
+
+document.addEventListener('DOMContentLoaded', () => {
+    // --- ESTADO GLOBAL DA APLICAÇÃO ---
+    let allProducts = [];
+    let cart = JSON.parse(localStorage.getItem('turboostCart')) || {};
     let currentUser = null;
     let subtotal = 0;
-    let selectedShipping = null;
-    let mp; // Instância do Mercado Pago
+    let mp; // Instância do Mercado Pago SDK
 
-    // --- FUNÇÕES DE API E LÓGICA ---
+    // --- ELEMENTOS DO DOM ---
+    const orderSummaryContainer = document.getElementById('order-summary');
+    const summarySubtotal = document.getElementById('summary-subtotal');
+    const summaryTotal = document.getElementById('summary-total');
+    const checkoutForm = document.getElementById('checkout-form');
+    const payButton = document.getElementById('pay-button');
+    const walletContainer = document.getElementById('wallet_container');
+    const emailField = document.getElementById('email');
+    const nameField = document.getElementById('name');
 
-    const renderOrderSummary = (products) => {
-        const orderSummaryEl = document.getElementById('order-summary');
-        orderSummaryEl.innerHTML = '';
-        subtotal = 0;
-        
-        const cartMap = new Map(cart.map(item => [item.id, item.quantity]));
-
-        products.forEach(product => {
-            const quantity = cartMap.get(product.id);
-            subtotal += product.price * quantity;
-            orderSummaryEl.innerHTML += `
-                <div class="flex justify-between text-sm">
-                    <span>${quantity}x ${product.name}</span>
-                    <span>R$ ${(product.price * quantity).toFixed(2)}</span>
-                </div>
-            `;
-        });
-
-        summarySubtotalEl.textContent = `R$ ${subtotal.toFixed(2)}`;
-        updateTotal();
-    };
-
-    const updateTotal = () => {
-        const shippingCost = selectedShipping ? selectedShipping.price : 0;
-        const total = subtotal + shippingCost;
-        summaryShippingEl.textContent = `R$ ${shippingCost.toFixed(2)}`;
-        summaryTotalEl.textContent = `R$ ${total.toFixed(2)}`;
-        
-        payButton.disabled = !selectedShipping || !checkoutForm.checkValidity();
-    };
-
-    const renderShippingOptions = (options) => {
-        shippingMessage.classList.add('hidden');
-        shippingOptionsContainer.innerHTML = '';
-
-        if (!options || options.length === 0) {
-            shippingOptionsContainer.innerHTML = '<p class="text-red-400">Nenhuma opção de frete encontrada para este CEP.</p>';
-            return;
+    // --- AUTENTICAÇÃO ---
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            // Preenche automaticamente os campos de email e nome se estiverem vazios
+            if (emailField) emailField.value = user.email;
+            if (nameField && !nameField.value) nameField.value = user.displayName || '';
+            payButton.disabled = Object.keys(cart).length === 0;
+        } else {
+            // Se não houver utilizador, redireciona para a página de login
+            window.location.href = '/login.html?redirect=checkout';
         }
+    });
 
-        options.forEach(option => {
-            const optionId = `shipping-${option.name.replace(/\s+/g, '-')}`;
-            const optionDiv = document.createElement('div');
-            optionDiv.className = 'shipping-option border border-gray-600 p-4 rounded-md cursor-pointer hover:border-detail';
-            optionDiv.innerHTML = `
-                <input type="radio" name="shipping" id="${optionId}" value='${JSON.stringify(option)}' class="hidden" required>
-                <label for="${optionId}" class="flex justify-between items-center cursor-pointer">
-                    <span class="font-medium">${option.name}</span>
-                    <span class="text-lg font-bold">R$ ${option.price.toFixed(2)}</span>
-                </label>
-                <p class="text-sm text-text-muted">Prazo de entrega: ${option.delivery_days} dias</p>
-            `;
-            shippingOptionsContainer.appendChild(optionDiv);
-        });
-    };
-
-    const getShippingOptions = async (cep) => {
-        shippingLoader.classList.remove('hidden');
-        shippingMessage.classList.add('hidden');
-        shippingOptionsContainer.innerHTML = '';
-        selectedShipping = null;
-        updateTotal();
-
+    // --- LÓGICA DE DADOS E RENDERIZAÇÃO ---
+    const loadProducts = async () => {
         try {
-            const response = await fetch('/api/shipping', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cep, items: cart })
-            });
-            if (!response.ok) throw new Error('Falha ao calcular o frete.');
-            
-            const shippingData = await response.json();
-            renderShippingOptions(shippingData.options);
-
-        } catch (error) {
-            console.error("Erro ao buscar frete:", error);
-            shippingOptionsContainer.innerHTML = `<p class="text-red-400">${error.message}</p>`;
-        } finally {
-            shippingLoader.classList.add('hidden');
-        }
-    };
-    
-    const handleCepInput = async (event) => {
-        const cep = event.target.value.replace(/\D/g, '');
-        if (cep.length !== 8) return;
-
-        try {
-            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            if (!response.ok) throw new Error('CEP não encontrado.');
+            const response = await fetch('/api/products');
+            if (!response.ok) throw new Error('Falha ao carregar produtos.');
             const data = await response.json();
-            if (data.erro) {
-                streetInput.value = '';
-                neighborhoodInput.value = '';
-                cityInput.value = '';
-                stateInput.value = '';
-                return;
-            }
-
-            streetInput.value = data.logradouro;
-            neighborhoodInput.value = data.bairro;
-            cityInput.value = data.localidade;
-            stateInput.value = data.uf;
-            numberInput.focus();
-
-            await getShippingOptions(cep);
-
+            allProducts = data.products || [];
+            renderOrderSummary();
         } catch (error) {
-            console.error("Erro ao buscar CEP:", error);
-            shippingMessage.textContent = "CEP não encontrado. Tente novamente.";
-            shippingMessage.classList.remove('hidden');
+            console.error("Erro ao carregar dados do produto:", error);
+            orderSummaryContainer.innerHTML = '<p class="text-red-400">Não foi possível carregar os dados do carrinho.</p>';
+            payButton.disabled = true;
         }
     };
 
-    const createPayment = async () => {
-        if (!checkoutForm.checkValidity() || !selectedShipping || !currentUser) {
-            alert("Por favor, preencha todos os campos obrigatórios e selecione uma opção de frete.");
+    const renderOrderSummary = () => {
+        orderSummaryContainer.innerHTML = '';
+        subtotal = 0;
+
+        if (Object.keys(cart).length === 0) {
+            orderSummaryContainer.innerHTML = '<p class="text-gray-400">O seu carrinho está vazio.</p>';
+            payButton.disabled = true;
             return;
         }
 
+        for (const productId in cart) {
+            const product = allProducts.find(p => p.id === productId);
+            if (product) {
+                const quantity = cart[productId];
+                const itemTotal = product.price * quantity;
+                subtotal += itemTotal;
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'flex justify-between items-center';
+                itemDiv.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <img src="${product.imageUrl || 'https://placehold.co/64x64/2c2c2c/FFF?text=?'}" alt="${product.name}" class="h-16 w-16 object-cover rounded-md">
+                        <div>
+                            <p class="text-white font-semibold">${product.name}</p>
+                            <p class="text-sm text-gray-400">Quantidade: ${quantity}</p>
+                        </div>
+                    </div>
+                    <span class="text-yellow-400 font-bold">R$ ${itemTotal.toFixed(2)}</span>
+                `;
+                orderSummaryContainer.appendChild(itemDiv);
+            }
+        }
+        
+        summarySubtotal.textContent = `R$ ${subtotal.toFixed(2)}`;
+        summaryTotal.textContent = `R$ ${subtotal.toFixed(2)}`;
+        if (currentUser) payButton.disabled = false;
+    };
+
+    // --- LÓGICA DE PAGAMENTO ---
+    checkoutForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser) {
+            alert("Você precisa de estar logado para finalizar a compra.");
+            return;
+        }
+        
         payButton.disabled = true;
         payButton.textContent = 'A processar...';
 
         try {
             const idToken = await currentUser.getIdToken(true);
-            
-            const orderData = {
-                customer: {
-                    name: document.getElementById('name').value,
-                    email: document.getElementById('email').value,
-                    phone: document.getElementById('phone').value,
-                    cpf: document.getElementById('cpf').value,
-                },
-                shippingAddress: {
-                    street: streetInput.value,
-                    number: numberInput.value,
-                    complement: document.getElementById('complement').value,
-                    neighborhood: neighborhoodInput.value,
-                    city: cityInput.value,
-                    state: stateInput.value,
-                    zip: cepInput.value,
-                },
-                items: cart,
-                shipping: selectedShipping
+            const formData = new FormData(checkoutForm);
+            const customerData = Object.fromEntries(formData.entries());
+
+            const orderPayload = {
+                items: Object.entries(cart).map(([id, quantity]) => ({ id, quantity })),
+                customer: customerData
             };
 
             const response = await fetch('/api/create_payment', {
                 method: 'POST',
-                headers: {
+                headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${idToken}`
                 },
-                body: JSON.stringify(orderData)
+                body: JSON.stringify(orderPayload)
             });
 
             if (!response.ok) {
@@ -188,76 +127,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const { preferenceId, publicKey } = await response.json();
 
-            // Esconde o botão de pagar e renderiza o Wallet Brick
             payButton.classList.add('hidden');
+            
             if (!mp) {
-                mp = new MercadoPago(publicKey);
+                mp = new MercadoPago(publicKey, { locale: "pt-BR" });
             }
             mp.checkout({
-                preference: {
-                    id: preferenceId
-                },
-                render: {
-                    container: '#wallet_container',
-                    label: 'Finalizar Pagamento',
-                }
+                preference: { id: preferenceId },
+                render: { container: '#wallet_container' }
             });
 
         } catch (error) {
             alert(`Erro: ${error.message}`);
             payButton.disabled = false;
-            payButton.textContent = 'Pagar com Mercado Pago';
-        }
-    };
-
-    // --- INICIALIZAÇÃO E EVENT LISTENERS ---
-    const { auth } = await firebasePromise;
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            currentUser = user;
-            document.getElementById('email').value = user.email;
-            
-            if (cart.length === 0) {
-                window.location.href = '/index.html';
-                return;
-            }
-            
-            const response = await fetch('/api/cart-details', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ids: cart.map(item => item.id) })
-            });
-            const productsWithDetails = await response.json();
-            renderOrderSummary(productsWithDetails);
-            
-            document.getElementById('loader').classList.add('hidden');
-            document.getElementById('checkout-content').classList.remove('hidden');
-
-        } else {
-            localStorage.setItem('redirectAfterLogin', '/checkout.html');
-            window.location.href = '/index.html#login';
+            payButton.textContent = 'Ir para Pagamento';
         }
     });
 
-    cepInput.addEventListener('blur', handleCepInput);
-
-    shippingOptionsContainer.addEventListener('click', (e) => {
-        const optionDiv = e.target.closest('.shipping-option');
-        if (!optionDiv) return;
-
-        document.querySelectorAll('.shipping-option').forEach(el => el.classList.remove('border-detail', 'bg-gray-700'));
-        optionDiv.classList.add('border-detail', 'bg-gray-700');
-        
-        const radio = optionDiv.querySelector('input[type="radio"]');
-        radio.checked = true;
-        
-        selectedShipping = JSON.parse(radio.value);
-        updateTotal();
-    });
-
-    checkoutForm.addEventListener('input', () => {
-        updateTotal();
-    });
-
-    payButton.addEventListener('click', createPayment);
+    // --- INICIALIZAÇÃO ---
+    loadProducts();
 });

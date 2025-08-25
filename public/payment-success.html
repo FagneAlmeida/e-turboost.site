@@ -2,23 +2,56 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Pagamento Aprovado - Turboost</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Compra - Turboost</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/output.css">
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <script>
+        window.firebaseConfig = {{ firebase_config_json|safe }};
+    </script>
 </head>
-<body id="page-success" class="bg-primary text-text-light font-roboto flex flex-col items-center justify-center min-h-screen p-4">
-    <div class="bg-secondary p-8 rounded-lg shadow-xl text-center max-w-lg w-full">
-        <div class="mx-auto mb-4 w-16 h-16 flex items-center justify-center bg-green-500 rounded-full">
-            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+<body class="bg-gray-900 text-gray-100 font-sans">
+
+    <header class="bg-gray-800 shadow-lg">
+        <nav class="container mx-auto px-6 py-4"><a href="/" class="text-2xl font-bold font-anton text-yellow-400">TURBOOST</a></nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <h1 class="font-anton text-4xl text-white text-center mb-12">FINALIZAR COMPRA</h1>
+        <div id="loader" class="text-center p-8"><p class="text-gray-400">A carregar...</p></div>
+        <div id="checkout-content" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-12">
+            <div class="lg:col-span-3 bg-gray-800 p-8 rounded-lg shadow-xl">
+                <form id="checkout-form">
+                    <section>
+                        <h2 class="font-anton text-2xl text-yellow-400 border-b border-gray-700 pb-3 mb-6">1. Detalhes de Contato</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="name" name="name" placeholder="Nome Completo" class="input-field" required>
+                            <input type="email" id="email" name="email" placeholder="E-mail" class="input-field" required readonly>
+                        </div>
+                    </section>
+                </form>
+            </div>
+            <aside class="lg:col-span-2 bg-gray-800 p-8 rounded-lg shadow-xl h-fit">
+                <h2 class="font-anton text-2xl text-yellow-400 border-b border-gray-700 pb-3 mb-6">Resumo</h2>
+                <div id="order-summary" class="space-y-3 mb-6"></div>
+                <div class="border-t border-gray-700 pt-4">
+                    <div class="flex justify-between font-bold text-xl text-white">
+                        <span>Total</span>
+                        <span id="summary-total" class="text-yellow-400">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="mt-8">
+                     <button id="pay-button" class="btn btn-accent w-full text-lg" type="submit" form="checkout-form" disabled>Ir para Pagamento</button>
+                    <div id="wallet_container" class="mt-4"></div>
+                </div>
+            </aside>
         </div>
-        <h1 class="font-anton text-3xl text-white mb-2">Pagamento Aprovado!</h1>
-        <p class="text-gray-400 mb-6">O seu pedido foi recebido com sucesso. Estamos a preparar tudo para o envio.</p>
-        <div class="text-left bg-primary p-4 rounded-md text-sm">
-            <p class="mb-2"><strong>ID do Pagamento:</strong> <span id="payment_id">...</span></p>
-            <p><strong>Status:</strong> <span id="status" class="font-bold text-green-400">...</span></p>
-        </div>
-        <a href="/index.html" class="mt-8 btn btn-accent w-full">Voltar à Loja</a>
-    </div>
-    <script type="module" src="/js/payment-feedback.js"></script>
+    </main>
+
+    <script type="module" src="/js/checkout.js"></script>
 </body>
 </html>

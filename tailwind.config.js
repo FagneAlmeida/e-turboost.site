@@ -1,72 +1,57 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  // A seção 'content' informa ao Tailwind onde procurar por classes CSS.
-  // Já está corretamente configurado para monitorar seus arquivos HTML e JS.
+  // A seção 'content' é crucial. Ela informa ao Tailwind para analisar todos os
+  // ficheiros .html e .js dentro da pasta 'public' e suas subpastas em busca
+  // de classes de utilitário. Isto garante que apenas o CSS que usamos
+  // seja incluído no ficheiro final (output.css), otimizando o desempenho.
   content: [
     './public/**/*.html',
     './public/**/*.js',
   ],
 
-  // --- CORREÇÃO: Safelist refinada ---
-  // A 'safelist' garante que classes dinâmicas não sejam removidas no build.
+  // A 'safelist' é uma medida de segurança. Ela impede que o Tailwind remova
+  // classes que podem ser adicionadas dinamicamente via JavaScript e que,
+  // por isso, não são visíveis na análise inicial dos ficheiros.
   safelist: [
-    'open', // Para modais e dropdowns
-    'add-to-cart-btn',
-    'remove-from-cart-btn',
-    'quantity-input',
-    // Classes de estilização que podem ser usadas dinamicamente
-    'bg-primary',
-    'bg-secondary',
-    'bg-accent',
-    'text-accent',
-    'border-accent',
-    'bg-success',
-    'bg-detail',
-    'text-red-500',
-    'text-green-500',
+    'open', // Usado para controlar a visibilidade de modais e painéis.
+    // Adicione aqui outras classes que sejam geradas dinamicamente.
   ],
 
   theme: {
+    // A seção 'extend' permite-nos adicionar novas configurações ao tema
+    // padrão do Tailwind sem substituir os valores originais.
     extend: {
-      // --- CORREÇÃO: Paleta de cores expandida e semântica ---
-      // Mapeia as cores para serem usadas como classes do Tailwind.
-      // A estrutura foi melhorada para incluir variações como 'hover'.
+      // Aqui definimos a nossa paleta de cores personalizada e semântica.
+      // Em vez de usar 'gray-800', podemos usar 'primary-dark', que é mais
+      // significativo e fácil de manter.
       colors: {
-        'primary': {
-          DEFAULT: '#1a1a1a', // Preto principal
-          '700': '#0d0d0d',   // Variação mais escura
-          '500': '#2c2c2c',   // Variação mais clara
-        },
-        'secondary': '#4a4a4a', // Cinza escuro para elementos secundários
-        'accent': {
-          DEFAULT: '#FFC700', // Amarelo principal para destaque
-          'hover': '#E6B300', // Tom mais escuro para efeito hover
-        },
-        'detail': '#E53935',    // Vermelho para detalhes, erros ou promoções
-        'success': '#4CAF50',  // Verde para mensagens de sucesso
-        'background': {
-          DEFAULT: '#FFFFFF', // Fundo principal claro
-          'light': '#F5F5F5',  // Tom de cinza muito claro
-        },
-        'text': {
-          'light': '#FFFFFF',  // Texto sobre fundos escuros
-          'dark': '#1a1a1a',   // Texto sobre fundos claros
-          'muted': '#6c757d',  // Texto com menos destaque
-        },
+        'primary': '#1a1a1a',          // Cor de fundo principal (preto suave)
+        'primary-light': '#2c2c2c',    // Variação mais clara para painéis, cards
+        'primary-dark': '#111827',     // Variação mais escura para fundos profundos
+        'secondary': '#4a4a4a',        // Cinza escuro para elementos secundários
+        'accent': '#FFC700',           // Amarelo principal para destaque, botões, links
+        'accent-hover': '#E6B300',     // Tom mais escuro do amarelo para efeito hover
+        'detail': '#E53935',           // Vermelho para detalhes, erros ou ações destrutivas
+        'success': '#4CAF50',         // Verde para mensagens de sucesso
+        'text-light': '#FFFFFF',       // Cor de texto principal sobre fundos escuros
+        'text-dark': '#1a1a1a',        // Cor de texto principal sobre fundos claros
+        'text-muted': '#9CA3AF',       // Cor de texto com menos destaque (cinza claro)
       },
-      // --- CORREÇÃO: Fontes expandidas ---
-      // Adicionada a fonte 'open-sans' conforme sugerido.
+      // Definimos as nossas fontes personalizadas, garantindo que elas
+      // sejam carregadas e aplicadas corretamente em todo o site.
       fontFamily: {
         'anton': ['Anton', 'sans-serif'],
-        'roboto': ['Roboto', 'sans-serif'],
-        'open-sans': ['"Open Sans"', 'sans-serif'],
+        'inter': ['Inter', 'sans-serif'],
       }
     },
   },
 
-  // Adicionar plugins pode estender as funcionalidades do Tailwind.
-  // O plugin de formulários é muito útil para estilizar inputs, selects, etc.
+  // Plugins estendem as funcionalidades do Tailwind.
+  // O '@tailwindcss/forms' é um plugin oficial que redefine os estilos
+  // padrão dos elementos de formulário, tornando-os muito mais fáceis
+  // de estilizar com classes de utilitário.
   plugins: [
     require('@tailwindcss/forms'),
+    require('@tailwindcss/aspect-ratio'), // Útil para vídeos responsivos
   ],
 }

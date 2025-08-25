@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Registo - Turboost</title>
+    <link rel="stylesheet" href="/css/output.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        window.firebaseConfig = {{ firebase_config_json|safe }};
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans">
+
+    <header class="bg-gray-800 shadow-lg">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" class="text-2xl font-bold font-anton text-yellow-400">TURBOOST</a>
+            <a href="/" class="hover:text-yellow-400 transition-colors">Voltar à Loja</a>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12 flex items-center justify-center">
+        <div class="w-full max-w-lg">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-xl">
+                <div class="mb-6 flex border-b border-gray-700">
+                    <button id="show-login-btn" class="flex-1 py-3 font-bold text-yellow-400 border-b-2 border-yellow-400">Entrar</button>
+                    <button id="show-register-btn" class="flex-1 py-3 font-bold text-gray-400">Registar</button>
+                </div>
+
+                <div id="login-view">
+                    <form id="login-form">
+                        <input type="email" name="email" class="input-field mb-4" placeholder="Email" required>
+                        <div class="relative mb-6">
+                            <input type="password" id="login-password" name="password" class="input-field pr-10" placeholder="Senha" required>
+                            <button type="button" id="toggle-login-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"></button>
+                        </div>
+                        <button type="submit" class="btn btn-accent w-full">Entrar</button>
+                        <p id="login-error" class="text-red-400 text-center mt-4 text-sm"></p>
+                    </form>
+                </div>
+
+                <div id="register-view" class="hidden">
+                    <form id="register-form">
+                        <input type="email" name="email" class="input-field mb-4" placeholder="Email" required>
+                        <div class="relative mb-6">
+                            <input type="password" id="register-password" name="password" class="input-field pr-10" placeholder="Crie uma Senha" required>
+                            <button type="button" id="toggle-register-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"></button>
+                        </div>
+                        <button type="submit" class="btn btn-accent w-full">Criar Conta</button>
+                        <p id="register-error" class="text-red-400 text-center mt-4 text-sm"></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script type="module" src="/js/login.js"></script>
+</body>
+</html>

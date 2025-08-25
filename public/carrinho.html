@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtos - Turboost</title>
+    
+    <!-- Favicon (Exemplo) -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- CSS (Tailwind) -->
+    <link rel="stylesheet" href="/css/output.css">
+
+    <!-- Configuração do Firebase (será injetada pelo backend) -->
+    <script>
+        // A configuração do Firebase será colocada aqui dinamicamente pelo Flask.
+        window.firebaseConfig = {{ firebase_config_json|safe }};
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-roboto">
+
+    <!-- =================================================================
+         CABEÇALHO (Componente Reutilizável)
+    ================================================================== -->
+    <header class="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" aria-label="Página Inicial da Turboost">
+                <img src="/assets/logo.svg" alt="Logótipo Turboost" class="h-10">
+            </a>
+            <ul class="flex items-center space-x-6">
+                <li><a href="/" class="hover:text-yellow-400 transition-colors">Início</a></li>
+                <li><a href="/produtos.html" class="text-yellow-400 font-bold" aria-current="page">Produtos</a></li>
+                <li><a href="/#sobre" class="hover:text-yellow-400 transition-colors">Sobre Nós</a></li>
+            </ul>
+            <div class="flex items-center space-x-4">
+                <div id="user-area">
+                    <!-- Gerenciado por JS -->
+                </div>
+                <button id="cart-button" aria-label="Abrir carrinho de compras" class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span id="cart-count" class="absolute -top-2 -right-2 bg-yellow-500 text-gray-900 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- =================================================================
+         CONTEÚDO PRINCIPAL
+    ================================================================== -->
+    <main class="container mx-auto px-6 py-12">
+        
+        <!-- Cabeçalho da Página de Produtos -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <h1 class="text-4xl font-anton text-white uppercase">Nossos Escapamentos</h1>
+            <div class="flex items-center space-x-4">
+                <label for="sort-options" class="text-gray-400">Ordenar por:</label>
+                <select id="sort-options" name="sort-options" class="bg-gray-800 border border-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                    <option value="relevance">Mais Relevantes</option>
+                    <option value="price-asc">Menor Preço</option>
+                    <option value="price-desc">Maior Preço</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Layout Principal (Filtros + Grelha de Produtos) -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+            <!-- Coluna de Filtros -->
+            <aside id="filters" class="lg:col-span-1 bg-gray-800 p-6 rounded-lg h-fit">
+                <h2 class="text-2xl font-bold mb-6">Filtros</h2>
+                
+                <section class="mb-6">
+                    <h3 class="font-bold mb-3">Categorias</h3>
+                    <div id="category-filters" class="space-y-2">
+                        <div><input type="checkbox" id="cat-ponteira" name="category" value="ponteira" class="accent-yellow-400"><label for="cat-ponteira" class="ml-2">Ponteiras Esportivas</label></div>
+                        <div><input type="checkbox" id="cat-completo" name="category" value="completo" class="accent-yellow-400"><label for="cat-completo" class="ml-2">Escapamentos Completos</label></div>
+                        <div><input type="checkbox" id="cat-coletor" name="category" value="coletor" class="accent-yellow-400"><label for="cat-coletor" class="ml-2">Coletores</label></div>
+                        <div><input type="checkbox" id="cat-acessorio" name="category" value="acessorio" class="accent-yellow-400"><label for="cat-acessorio" class="ml-2">Acessórios</label></div>
+                    </div>
+                </section>
+
+                <section class="mb-6">
+                    <h3 class="font-bold mb-3">Marca da Motocicleta</h3>
+                    <div id="brand-filters" class="space-y-2">
+                        <div><input type="checkbox" id="brand-honda" name="brand" value="honda" class="accent-yellow-400"><label for="brand-honda" class="ml-2">Honda</label></div>
+                        <div><input type="checkbox" id="brand-yamaha" name="brand" value="yamaha" class="accent-yellow-400"><label for="brand-yamaha" class="ml-2">Yamaha</label></div>
+                        <div><input type="checkbox" id="brand-kawasaki" name="brand" value="kawasaki" class="accent-yellow-400"><label for="brand-kawasaki" class="ml-2">Kawasaki</label></div>
+                        <div><input type="checkbox" id="brand-suzuki" name="brand" value="suzuki" class="accent-yellow-400"><label for="brand-suzuki" class="ml-2">Suzuki</label></div>
+                        <div><input type="checkbox" id="brand-bmw" name="brand" value="bmw" class="accent-yellow-400"><label for="brand-bmw" class="ml-2">BMW</label></div>
+                    </div>
+                </section>
+
+                <button id="apply-filters" class="w-full bg-yellow-500 text-gray-900 font-bold py-2 px-4 rounded-md hover:bg-yellow-400 transition-colors">Aplicar Filtros</button>
+            </aside>
+
+            <!-- Coluna da Lista de Produtos -->
+            <section id="product-list" aria-labelledby="product-list-title" class="lg:col-span-3">
+                <h2 id="product-list-title" class="sr-only">Lista de Produtos</h2>
+                
+                <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                    <div id="loader" class="col-span-full text-center p-8">
+                        <p class="text-yellow-400">A carregar produtos...</p>
+                    </div>
+                </div>
+
+                <nav id="pagination" aria-label="Paginação de produtos" class="mt-12 flex justify-center items-center space-x-4">
+                    <!-- A paginação será gerida pelo JavaScript -->
+                </nav>
+            </section>
+        </div>
+    </main>
+
+    <!-- =================================================================
+         RODAPÉ (Componente Reutilizável)
+    ================================================================== -->
+    <footer id="contato" class="bg-gray-950 mt-16 pt-12 pb-8">
+        <div class="container mx-auto px-6 text-center text-gray-400">
+            <a href="/" aria-label="Página Inicial da Turboost">
+                <img src="/assets/logo.svg" alt="Logótipo Turboost" class="h-10 mx-auto mb-4">
+            </a>
+            <p class="mb-4">Paixão por performance, de piloto para piloto.</p>
+            <div class="border-t border-gray-700 pt-6 text-sm">
+                <p>&copy; <span id="year"></span> Turboost. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- =================================================================
+         PAINEL DO CARRINHO DE COMPRAS (NOVO)
+    ================================================================== -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden" aria-hidden="true"></div>
+    <aside id="cart-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg transform translate-x-full transition-transform duration-300 ease-in-out z-50 flex flex-col" aria-labelledby="cart-panel-title">
+        <!-- Cabeçalho do Carrinho -->
+        <div class="flex justify-between items-center p-6 border-b border-gray-700">
+            <h2 id="cart-panel-title" class="text-2xl font-anton text-white">Seu Carrinho</h2>
+            <button id="close-cart-btn" aria-label="Fechar carrinho" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Itens do Carrinho -->
+        <div id="cart-items-container" class="flex-grow p-6 overflow-y-auto">
+            <!-- Os itens do carrinho serão renderizados aqui pelo cart.js -->
+            <p class="text-gray-400 text-center">Seu carrinho está vazio.</p>
+        </div>
+
+        <!-- Rodapé do Carrinho -->
+        <div class="p-6 border-t border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-lg font-bold">Subtotal:</span>
+                <span id="cart-subtotal" class="text-lg font-bold text-yellow-400">R$ 0,00</span>
+            </div>
+            <a href="/checkout.html" id="checkout-btn" class="w-full text-center bg-yellow-500 text-gray-900 font-bold py-3 px-4 rounded-md hover:bg-yellow-400 transition-colors block">
+                Finalizar Compra
+            </a>
+        </div>
+    </aside>
+
+    <!-- Scripts da Página -->
+    <script type="module" src="/js/products.js"></script>
+    <script type="module" src="/js/cart.js"></script>
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

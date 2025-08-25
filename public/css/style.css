@@ -259,3 +259,40 @@ body.admin-body {
     transform: translate(-50%, -50%); /* Centraliza quando aberto */
     opacity: 1;
 }
+
+/* =================================================================
+   ESTILOS DO TOAST NOTIFICATION
+   ================================================================= */
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+#toast-notification.show {
+  display: block; 
+  animation: slideInUp 0.5s forwards, fadeOut 0.5s 2.5s forwards;
+}
+
+#toast-notification.success {
+  background-color: #28a745;
+}
+
+#toast-notification.error {
+  background-color: #dc3545;
+}

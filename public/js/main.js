@@ -1,126 +1,136 @@
-import { firebasePromise } from '/js/app-init.js';
+// public/js/main.js
 
-firebasePromise.then(({ auth, db }) => {
-    main(auth, db);
-}).catch(error => {
-    console.error("Falha na inicialização do Firebase:", error);
-});
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-function main(auth, db) {
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- ELEMENTOS DO DOM ---
-        const productGrid = document.getElementById('product-grid');
-        const brandSelect = document.getElementById('brand-select');
-        const modelSelect = document.getElementById('model-select');
-        const yearSelect = document.getElementById('year-select');
-        const searchButton = document.getElementById('search-button');
-        const searchResultsSection = document.getElementById('search-results-section');
-        const searchResultsGrid = document.getElementById('search-results-grid');
-        const mainContent = document.getElementById('main-content');
-        const infoModalOverlay = document.getElementById('info-modal-overlay');
-        const infoModal = document.getElementById('info-modal');
-        const infoModalTitle = document.getElementById('info-modal-title');
-        const infoModalContent = document.getElementById('info-modal-content');
-        const closeInfoModalBtn = document.getElementById('close-info-modal-btn');
-        const contactInfoFooter = document.getElementById('contact-info-footer');
-        const socialLinksFooter = document.getElementById('social-links-footer');
-        const headerLogo = document.getElementById('header-logo');
-        const footerLogo = document.getElementById('footer-logo');
+// Inicializa o Firebase com a configuração injetada pelo HTML
+const app = initializeApp(window.firebaseConfig);
+const auth = getAuth(app);
 
-        // --- ESTADO DA APLICAÇÃO ---
-        let allProducts = []; // Mantido para outras funcionalidades se necessário
-        let cart = JSON.parse(localStorage.getItem('turboostCart')) || [];
+document.addEventListener('DOMContentLoaded', () => {
+    // --- ELEMENTOS DO DOM ---
+    const userActions = document.getElementById('user-actions');
+    const loginLink = document.getElementById('login-link');
+    const productGrid = document.getElementById('product-grid');
+    const loader = document.getElementById('loader');
+    const aboutUsBtn = document.getElementById('about-us-btn');
+    const aboutUsModalOverlay = document.getElementById('about-us-modal-overlay');
+    const closeAboutUsModalBtn = document.getElementById('close-about-us-modal-btn');
 
-        // --- FUNÇÕES DE UI ---
-        const openModal = (overlay, modal) => { /* ... (código existente) ... */ };
-        const closeModal = (overlay, modal) => { /* ... (código existente) ... */ };
-        const openInfoModal = async (pageType) => { /* ... (código existente) ... */ };
-        const renderProducts = (productsToRender, gridElement) => { /* ... (código existente) ... */ };
-
-        // --- LÓGICA DE BUSCA/FILTRO (REATORADA) ---
-        const populateSearchFilters = () => { /* ... (código existente) ... */ };
+    // --- LÓGICA DE AUTENTICAÇÃO E UI DO CABEÇALHO ---
+    onAuthStateChanged(auth, (user) => {
+        if (!userActions || !loginLink) return;
         
-        /**
-         * Executa a busca de produtos no servidor com base nos filtros selecionados.
-         * Esta função foi refatorada para usar o endpoint da API em vez de filtrar localmente.
-         */
-        const performSearch = async () => {
-            const marca = brandSelect.value;
-            const modelo = modelSelect.value;
-            const ano = yearSelect.value;
+        const existingControls = userActions.querySelector('#user-controls');
+        if (existingControls) existingControls.remove();
 
-            // Mostra um feedback de carregamento para o utilizador
-            searchResultsGrid.innerHTML = '<p class="text-center text-white col-span-full">A procurar...</p>';
-            mainContent.classList.add('hidden');
-            searchResultsSection.classList.remove('hidden');
+        const controlsContainer = document.createElement('div');
+        controlsContainer.id = 'user-controls';
+        controlsContainer.className = 'flex items-center space-x-4';
 
-            // Constrói os parâmetros de busca. URLSearchParams lida com a codificação.
-            const params = new URLSearchParams();
-            if (marca) params.append('marca', marca);
-            if (modelo) params.append('modelo', modelo);
-            if (ano) params.append('ano', ano);
+        if (user) {
+            // Utilizador LOGADO
+            loginLink.style.display = 'none';
             
-            // Constrói a URL final da API
-            const apiUrl = `/api/products/search?${params.toString()}`;
+            const accountLink = document.createElement('a');
+            accountLink.href = '/minha-conta.html';
+            accountLink.textContent = 'Minha Conta';
+            accountLink.className = 'hover:text-yellow-400 transition-colors';
+            
+            const logoutBtn = document.createElement('button');
+            logoutBtn.textContent = 'Sair';
+            logoutBtn.className = 'hover:text-yellow-400 transition-colors';
+            logoutBtn.onclick = () => signOut(auth).catch(error => console.error("Erro ao sair:", error));
 
-            try {
-                const response = await fetch(apiUrl);
-                if (!response.ok) {
-                    throw new Error(`Erro na API: ${response.statusText}`);
-                }
-                const products = await response.json();
-
-                // Limpa o grid antes de renderizar os novos resultados
-                searchResultsGrid.innerHTML = ''; 
-
-                if (products.length > 0) {
-                    renderProducts(products, searchResultsGrid);
-                } else {
-                    searchResultsGrid.innerHTML = '<p class="text-center text-white col-span-full">Nenhum produto encontrado com os filtros selecionados.</p>';
-                }
-
-            } catch (error) {
-                console.error("Erro ao realizar a busca:", error);
-                searchResultsGrid.innerHTML = '<p class="text-center text-red-400 col-span-full">Ocorreu um erro ao buscar os produtos. Por favor, tente novamente.</p>';
-            }
-        };
-
-        // --- CARREGAMENTO INICIAL DE DADOS ---
-        const loadInitialData = async () => {
-            try {
-                // A rota /api/products ainda pode ser usada para carregar destaques, por exemplo
-                const [productsResponse, settingsResponse] = await Promise.all([
-                    fetch('/api/products'), // Ajuste: talvez buscar apenas destaques? Ex: /api/products?featured=true
-                    fetch('/api/settings')
-                ]);
-
-                if (productsResponse.ok) {
-                    allProducts = await productsResponse.json();
-                    const bestSellers = allProducts.filter(p => p.isFeatured);
-                    renderProducts(bestSellers, productGrid); 
-                    populateSearchFilters(); // Assumindo que esta função usa `allProducts` para popular os selects
-                }
-
-                if (settingsResponse.ok) {
-                    const settings = await settingsResponse.json();
-                    // ... (lógica de settings inalterada) ...
-                }
-            } catch (error) {
-                console.error("Erro ao carregar dados iniciais:", error);
-            }
-        };
-
-        // --- EVENT LISTENERS ---
-        searchButton.addEventListener('click', performSearch);
-        document.body.addEventListener('click', (e) => {
-            const infoTrigger = e.target.closest('.info-modal-trigger');
-            if (infoTrigger) {
-                e.preventDefault();
-                openInfoModal(infoTrigger.dataset.modalType);
-            }
-        });
-        // ... (restante dos listeners)
-        
-        loadInitialData();
+            controlsContainer.appendChild(accountLink);
+            controlsContainer.appendChild(logoutBtn);
+        } else {
+            // Utilizador DESLOGADO
+            loginLink.style.display = 'block';
+        }
+        userActions.prepend(controlsContainer);
     });
-}
+
+    // --- LÓGICA PARA CARREGAR PRODUTOS EM DESTAQUE ---
+    const fetchProducts = async () => {
+        if (loader) loader.style.display = 'block';
+        try {
+            const response = await fetch('/api/products'); // Usa a rota correta
+            if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
+            const data = await response.json();
+            return data.products || [];
+        } catch (error) {
+            console.error("Falha ao buscar produtos:", error);
+            if(productGrid) productGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Não foi possível carregar os produtos.</p>`;
+            return [];
+        } finally {
+            if(loader) loader.style.display = 'none';
+        }
+    };
+
+    const renderFeaturedProducts = (products) => {
+        if (!productGrid) return;
+        productGrid.innerHTML = '';
+
+        const featuredProducts = products.filter(p => p.isFeatured);
+
+        if (featuredProducts.length === 0) {
+            productGrid.innerHTML = `<p class="col-span-full text-center text-gray-400">Nenhum produto em destaque no momento.</p>`;
+            return;
+        }
+
+        featuredProducts.forEach(product => {
+            const productCard = document.createElement('div');
+            // Estrutura de dados que o cart.js espera
+            productCard.className = 'product-card bg-gray-800 rounded-lg overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300 flex flex-col';
+            productCard.dataset.productId = product.id;
+            productCard.dataset.productName = product.name;
+            productCard.dataset.productPrice = product.price;
+            productCard.dataset.productImageUrl = product.imageUrl;
+
+            productCard.innerHTML = `
+                <div class="relative">
+                    <img src="${product.imageUrl}" alt="${product.name}" class="w-full h-56 object-cover">
+                    <span class="absolute top-2 left-2 bg-yellow-500 text-gray-900 text-xs font-bold px-2 py-1 rounded">Destaque</span>
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <h3 class="text-xl font-bold font-anton uppercase truncate">${product.name}</h3>
+                    <p class="text-gray-400 mt-1 flex-grow">${product.description}</p>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-2xl font-bold text-yellow-400">R$ ${parseFloat(product.price).toFixed(2)}</span>
+                        <button class="add-to-cart-btn bg-gray-700 text-white p-2 rounded-full hover:bg-yellow-500 hover:text-gray-900 transition-colors" aria-label="Adicionar ${product.name} ao carrinho">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            productGrid.appendChild(productCard);
+        });
+    };
+
+    // --- LÓGICA DO MODAL "SOBRE NÓS" ---
+    const toggleAboutUsModal = (show) => {
+        if (aboutUsModalOverlay) {
+            aboutUsModalOverlay.classList.toggle('hidden', !show);
+            aboutUsModalOverlay.classList.toggle('flex', show);
+        }
+    };
+    
+    if (aboutUsBtn) aboutUsBtn.addEventListener('click', () => toggleAboutUsModal(true));
+    if (closeAboutUsModalBtn) closeAboutUsModalBtn.addEventListener('click', () => toggleAboutUsModal(false));
+    if (aboutUsModalOverlay) {
+        aboutUsModalOverlay.addEventListener('click', (e) => {
+            if (e.target === aboutUsModalOverlay) toggleAboutUsModal(false);
+        });
+    }
+
+    // --- INICIALIZAÇÃO ---
+    const init = async () => {
+        const products = await fetchProducts();
+        renderFeaturedProducts(products);
+    };
+
+    if (productGrid) {
+        init();
+    }
+});

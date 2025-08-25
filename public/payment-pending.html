@@ -1,21 +1,96 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagamento Pendente - Turboost</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- CSS (Tailwind Compilado) -->
     <link rel="stylesheet" href="/css/output.css">
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Configuração do Firebase (será injetada pelo backend) -->
+    <script>
+        // A configuração do Firebase é injetada aqui pelo backend (Flask).
+        window.firebaseConfig = {{ firebase_config_json|safe }};
+    </script>
 </head>
-<body id="page-pending" class="bg-primary text-text-light font-roboto flex items-center justify-center min-h-screen p-4">
-    <div class="bg-secondary p-8 rounded-lg shadow-xl text-center max-w-md w-full">
-        <svg class="w-20 h-20 text-accent mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <h1 class="font-anton text-3xl text-white mb-2">Pagamento Pendente</h1>
-        <p class="text-gray-400 mb-6">Estamos a aguardar a confirmação do pagamento. Você será notificado por e-mail assim que for aprovado.</p>
-        <div class="text-left bg-primary p-4 rounded-md text-sm">
-            <p><strong>ID do Pagamento:</strong> <span id="payment_id">...</span></p>
+<body class="bg-gray-900 text-gray-100 font-sans flex flex-col min-h-screen">
+
+    <!-- =================================================================
+         CABEÇALHO (Componente Reutilizável)
+    ================================================================== -->
+    <header class="bg-gray-800 shadow-lg sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" class="text-2xl font-bold font-anton text-yellow-400">TURBOOST</a>
+            <ul class="flex items-center space-x-6">
+                <li><a href="/" class="hover:text-yellow-400 transition-colors">Início</a></li>
+                <li><a href="/produtos.html" class="hover:text-yellow-400 transition-colors">Produtos</a></li>
+            </ul>
+            <div class="flex items-center space-x-4">
+                <a href="/login.html" class="hover:text-yellow-400 transition-colors">Minha Conta</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- =================================================================
+         CONTEÚDO PRINCIPAL
+    ================================================================== -->
+    <main class="flex-grow flex items-center justify-center container mx-auto px-6 py-12">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-lg w-full">
+            <div class="mx-auto mb-4 w-16 h-16 flex items-center justify-center bg-yellow-500 rounded-full">
+                <svg class="w-10 h-10 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h1 class="font-anton text-3xl text-white mb-2">Pagamento Pendente</h1>
+            <p class="text-gray-400 mb-6">Estamos a aguardar a confirmação do seu pagamento. Você será notificado por e-mail assim que o processo for concluído.</p>
+            
+             <div class="text-left bg-gray-900 p-4 rounded-md text-sm">
+                <p class="mb-2"><strong>ID do Pagamento:</strong> <span id="payment_id">...</span></p>
+                <p class="mb-2"><strong>Status:</strong> <span id="status" class="font-bold text-yellow-400">...</span></p>
+                <p><strong>ID do Pedido:</strong> <span id="external_reference">...</span></p>
+            </div>
+    
+            <a href="/" class="btn btn-accent mt-8 inline-block w-full text-lg">
+                Voltar à Loja
+            </a>
         </div>
-        <a href="/index.html" class="mt-8 btn btn-accent w-full">Voltar à Loja</a>
-    </div>
+    </main>
+
+    <!-- =================================================================
+         RODAPÉ (Componente Reutilizável)
+    ================================================================== -->
+    <footer id="contacto" class="bg-black pt-12 pb-8">
+        <div class="container mx-auto px-6 text-center text-gray-400">
+            <h3 class="text-3xl font-anton text-yellow-400 mb-4">TURBOOST</h3>
+            <p class="mb-2">R. Guanabara, 456 - Ouro Branco, Novo Hamburgo - RS, 93320-220</p>
+            <p class="mb-4">contacto@turboost.com | +55 (51) 99547-0868</p>
+            <div class="flex justify-center space-x-6 mb-8">
+                <a href="#" class="hover:text-yellow-400">Facebook</a>
+                <a href="#" class="hover:text-yellow-400">Instagram</a>
+                <a href="#" class="hover:text-yellow-400">YouTube</a>
+            </div>
+            <div class="border-t border-gray-700 pt-6 text-sm">
+                <p>&copy; <span id="year"></span> Turboost. Todos os direitos reservados.</p>
+                <p class="mt-2">
+                    <a href="/termos.html" class="hover:text-yellow-400">Termos de Uso</a> | 
+                    <a href="/privacidade.html" class="hover:text-yellow-400">Política de Privacidade</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+    
     <script type="module" src="/js/payment-feedback.js"></script>
+    <script>
+        // Pequeno script para atualizar o ano no rodapé
+        document.getElementById('year').textContent = new Date().getFullYear();
+    </script>
+
 </body>
 </html>
